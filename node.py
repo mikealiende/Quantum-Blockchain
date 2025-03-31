@@ -12,11 +12,39 @@ class Node:
         self.known_tx_hashes: Set[str] = set()
         self.known_block_hashes: Set[str] = set()
 
+    def get_address(self) -> str:
+        "Devuelve la dirección de la wallet del nodo"
+        return self.wallet.get_address()
+    
     def add_peer(self, peer_node: 'Node'):
         "Simular establecer una conexión con otro nodo"
         if peer_node not in self.peers and peer_node != self:
             self.peers.append(peer_node)
             print(f"Nodo {self.node_id}: conectado al nodo {peer_node.node_id}")
+
+    def create_transaction(self, recipient_address:str, amount:float):
+        # Crear una transaccion desde la wallet de este nodo y la transmite
+        print(f"Nodo {self.node_id}: creando transacción a {recipient_address[:10]}... por {amount}")
+        tx = Transaction(sender_address=self.get_address(),
+                         recipient_address=recipient_address,
+                         amount=amount,
+                         inputs=[])
+        tx.sign_transaction(self.wallet)
+        tx_hash = tx.calculate_hash()
+
+        if tx.is_valid():
+            print(f"Nodo {self.node_id}: transacción válida {tx_hash[:8]}...")
+            if tx not in self.mempool:
+                self.mempool.add(tx)
+                self.known_tx_hashes.add(tx_hash)
+                print(f"Nodo {self.node_id}: transacción añadida al mempool {tx_hash[:8]}...")
+                self.broadcast_transacitions(tx)
+            else:
+                print(f"Nodo {self.node_id} Tx {tx_hash[:8]} ya estaba en mempool local")
+        else:
+            print(f"Nodo {self.node_id}: transacción inválida {tx_hash[:8]}...")
+        return tx
+
 
     def broadcast_transacitions(self, transaction: Transaction):
         "Transación a todos los nodos conocidos"
