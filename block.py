@@ -2,9 +2,10 @@ import hashlib
 import json
 from time import time
 from typing import List, Any # For type hinting
+from transactions import Transaction
 
 class Block:
-    def __init__(self, index: int, timestamp: float, transactions: List[Any], previous_hash: str, nonce: int = 0):
+    def __init__(self, index: int, timestamp: float, transactions: List[Transaction], previous_hash: str, nonce: int = 0):
         self.index = index
         self.timestamp = timestamp
         self.transactions = transactions # List of Transaction objects or dictionaries

@@ -2,6 +2,7 @@ from blockchain import Blockchain
 from block import Block
 from transactions import Transaction
 from typing import List, Any, Set # For type hinting
+from time import time
 
 class Node:
     def __init__(self, node_id:str, difficulty:int=4):
@@ -62,6 +63,7 @@ class Node:
         if tx_hash in self.known_tx_hashes:
             return #Transación ya conocida
         
+
         print (f"Node {self.node_id}: Recieved Tx {tx_hash[:8]}...")
         
         if not transaction.is_valid():
@@ -77,6 +79,50 @@ class Node:
         else:
             self.known_tx_hashes.add(tx_hash)
 
+    #Manejo de bloques
+
+    def mine_block(self):
+        #Minar bloque con las transaciones de la mempool
+        if not self.mempool:
+            print(f"Nodo {self.node_id}: Memepool vacia")
+            return None
+       
+        print(f"Nodo {self.node_id}: Intentnado minar bloque con {len(self.mempool)} transacciones")
+        transactions_to_mine = list(self.mempool)
+
+        #Crear bloque candidato
+        last_block = self.blockchain.last_block
+        new_block_candidate = Block(
+            index=last_block.index+1,
+            timestamp= time.time(),
+            transactions=transactions_to_mine,
+            previous_hash=last_block.hash,
+            nonce=0
+        )
+
+        #Realizar PoW
+        found_nonce = self.blockchain.proof_of_work(new_block_candidate)
+        if not new_block_candidate.hash.startswith('0'* self.blockchain.difficulty):
+            print(f"Nodo {self.node_id}: ERROR - PoW. {new_block_candidate.hash[:8]} no cumple la dificultad.")
+            return None
+        print(f"Nodo {self.node_id}: Bloque {new_block_candidate.index} minado. Nonce: {found_nonce}. Hash: {new_block_candidate.hash[:8]}...")
+
+        #Añadir bloque a cadena propia
+        self.blockchain.chain.append(new_block_candidate)
+        self.known_block_hashes.add(new_block_candidate.hash)
+
+        #Limpiar mempool de transaciones incluidas en el bloque
+        mined_tx_hashes = {tx.calculate_hash() for tx in transactions_to_mine}
+        self.mempool = {tx for tx in self.mempool if tx.calculate_hash() not in mined_tx_hashes}
+
+        #Limpiamos know tx
+        self.known_tx_hashes.difference_update(mined_tx_hashes)
+        print(f"Nodo {self.node_id}: Mempool limpiada. Txs restantes {len(self.mempool)}")
+
+        #Transmitir nuevo bloque
+        self.broadcast_block(new_block_candidate)
+
+
     def broadcast_block(self, block:Block):
         "Enviar bloque minado a todos los nodos"
         if block.hash in self.known_block_hashes:
@@ -88,8 +134,9 @@ class Node:
             peer.recieve_block(block)
 
     def recieve_block(self, block:Block):
+
         if block.hash in self.known_block_hashes:
-            return #bloque ya conocido
+            return False#bloque ya conocido
         print(f"Node {self.node_id}: Received Block {block.index} ({block.hash[:8]}...)")
         self.known_block_hashes.add(block.hash)
 
@@ -97,7 +144,57 @@ class Node:
         last_block = self.blockchain.last_block
         if block.previous_hash != last_block.hash:
             print(f"Nodo {self.node_id}: descarta el bloque {block.index} - hash anterior incorrecto")
-            return
+            return False
         
+        #3. Validar Proof of Work
+        if not block.hash.startswith('0'*self.blockchain.difficulty):
+            print(f"Nodo {self.node_id} descarta el bloque {block.index} con hash {block.hash[:8]} porque no cumple con PoW")
+            return False
+        
+        #4. Validad transaciones en el bloque
+        for tx in block.transactions:
+            if not tx.is_valid():
+                tx_hash = tx.calculate_hash()
+                print(f"Nodo {self.node_id}: Bloque {block.index} descartado - Contiene Tx inválida {tx_h[:8]}.")
+                return False
 
+        # Todas las validaciones correctas
+        print(f"Nodo {self.node_id}: Bloque {block.index} ({block.hash}) VALIDADO. Añadiendo a cadena local.")
+        self.blockchain.chain.append(block)
 
+        #Limpiar meempol
+        block_tx_hashes = {tx.calculate_hash() for tx in block.transactions}
+        original_mempool_size = len(self.mempool)
+        self.mempool = {tx for tx in self.mempool if tx.calculate_hash not in block_tx_hashes}
+        self.known_tx_hashes.difference_update(block_tx_hashes) #Quitarlas del known tambien
+        if len(self.mempool) < original_mempool_size:
+            print(f"Nodo {self.node_id}: Mempool local limpiada de {original_mempool_size - len(self.mempool)} Txs incluidas en el bloque.")
+        
+        self. broadcast_block(block)
+        return True
+    
+    #Utilidades
+    def __str__(self):
+        #Representación del estado del nodo
+        status = (f"Nodo ID: {self.node_id} | "
+                  f"Peers: {len(self.peers)} | "
+                  f"Bloques: {len(self.blockchain.chain)} ({self.blockchain.last_block.hash[:8]}...) | "
+                  f"Mempool Txs: {len(self.mempool)} | "
+                  f"Known Blocks: {len(self.known_block_hashes)} | "
+                  f"Known Txs: {len(self.known_tx_hashes)}")
+        return status
+    
+    def sync_with_peers(self):
+        #Metodo simplificado para intentar obtener bloques faltantes
+        print(f"Nodo: {self.node_id} intentando sincronizar...")
+        longest_chain_len = len(self.blockchain.chain)
+        longest_chain_node = None
+
+        #Encontrar peer con la cadena más larga
+        for peer in self.peers:
+            if len(peer.blockchain.chain > longest_chain_len):
+                longest_chain_len = len(peer.blockchain.chain)
+                longest_chain_node = peer
+            
+        if longest_chain_node:
+            print(f"Nodo: {self.node_id}: Encontrada cadena de {longest_chain_len} bloques en el nodo {longest_chain_node.node_id}")
