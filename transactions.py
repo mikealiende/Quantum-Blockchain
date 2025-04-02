@@ -12,7 +12,10 @@ class Wallet:
         self.public_key = self.private_key.get_verifying_key()
 
     def get_address(self)-> str:
-        return binascii.hexlify(self.public_key.to_string()).decode
+        public_key_bytes = self.public_key.to_string() # Obtener bytes de la clave pública
+        # Convertir bytes a cadena hexadecimal y decodificar a string UTF-8
+        hex_address = binascii.hexlify(public_key_bytes).decode('utf-8')
+        return hex_address
 
     def sign(self, data:bytes) -> str:
         signature = self.private_key.sign(data)
@@ -42,7 +45,7 @@ class Transaction:
     def sign_transaction(self, wallet:Wallet):
         if wallet.get_address() != self.sender:
             raise ValueError("No puedes firmar una transacción para otra cartera")
-        tx_hash = self.calculate_hash.encode()
+        tx_hash = self.calculate_hash().encode()
         self.signature = wallet.sign(tx_hash)
 
     def is_valid(self) -> bool:
