@@ -1,6 +1,6 @@
 from blockchain import Blockchain
 from block import Block
-from transactions import Transaction
+from transactions import Transaction, Wallet
 from typing import List, Any, Set # For type hinting
 from time import time
 
@@ -8,10 +8,15 @@ class Node:
     def __init__(self, node_id:str, difficulty:int=4):
         self.node_id = node_id
         self.blockchain = Blockchain(difficulty)
+        self.wallet = Wallet()
         self.mempool: Set[Transaction] = set()
         self.peers: List['Node'] = []
         self.known_tx_hashes: Set[str] = set()
         self.known_block_hashes: Set[str] = set()
+        if self.blockchain.chain:
+            self.known_block_hashes.add(self.blockchain.chain[0].hash)
+
+        print(f"Nodo {self.node_id} creado. Dirección Wallet: {self.wallet.get_address()[:10]}... Blockchain inicializada (Bloques: {len(self.blockchain.chain)})")
 
     def get_address(self) -> str:
         "Devuelve la dirección de la wallet del nodo"
@@ -197,4 +202,19 @@ class Node:
                 longest_chain_node = peer
             
         if longest_chain_node:
-            print(f"Nodo: {self.node_id}: Encontrada cadena de {longest_chain_len} bloques en el nodo {longest_chain_node.node_id}")
+            print(f"Nodo {self.node_id}: Encontrada cadena de {longest_chain_len} bloques en el nodo {longest_chain_node.node_id}")
+            current_len = len(self.blockchain.chain)
+            for i in range(current_len, longest_chain_len):
+                block_to_add = longest_chain_node.blockchain.chain[i]
+                print(f"Nodo {self.node_id}: Obtenido bloque {block_to_add.index} de {longest_chain_node.node_id}")
+                self.blockchain.chain.append(block_to_add)
+                self.known_block_hashes.add(block_to_add.hash)
+                
+                #Limpiar mempool
+                block_tx_hashes = {tx.calculate_hash() for tx in block_to_add.transactions}
+                self.mempool = {tx for tx in self.mempool if tx.calculate_hash() not in block_tx_hashes}
+                self.known_tx_hashes.difference_update(block_tx_hashes)
+            
+            print(f"Nodo {self.node_id}: Sincronizacion completada con {len(self.blockchain.chain)} bloques")
+        else:
+            print(f"Nodo {self.node_id}: Ya tengo la cadena más larga")
