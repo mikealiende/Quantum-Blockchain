@@ -99,7 +99,7 @@ class Node:
         last_block = self.blockchain.last_block
         new_block_candidate = Block(
             index=last_block.index+1,
-            timestamp= time.time(),
+            timestamp= time(),
             transactions=transactions_to_mine,
             previous_hash=last_block.hash,
             nonce=0
@@ -107,7 +107,8 @@ class Node:
 
         #Realizar PoW
         found_nonce = self.blockchain.proof_of_work(new_block_candidate)
-        if not new_block_candidate.hash.startswith('0'* self.blockchain.difficulty):
+        new_candidate_hash = new_block_candidate.calculate_hash()
+        if not new_candidate_hash.startswith('0'* self.blockchain.difficulty):            
             print(f"Nodo {self.node_id}: ERROR - PoW. {new_block_candidate.hash[:8]} no cumple la dificultad.")
             return None
         print(f"Nodo {self.node_id}: Bloque {new_block_candidate.index} minado. Nonce: {found_nonce}. Hash: {new_block_candidate.hash[:8]}...")

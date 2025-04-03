@@ -41,7 +41,7 @@ last_mine_time = start_time
 try:
     while time.time() - start_time < SIMULATION_DURATION_SECONDS:
         current_time = time.time()
-        acction_ocurred = False
+        action_ocurred = False
 
         #Simulamos creacion y transmision de transaciones
         if current_time - last_tx_time > random.expovariate(1.0/TRANSACTIONS_INTERVAL_MEAN):
@@ -55,7 +55,7 @@ try:
                     print(f"\n--- Evento: {sender_node.node_id} crea Tx para {recipient_node.node_id} ---")
                     sender_node.create_transaction(recipient_address=recipient_node.get_address(), amount=amount)
                     last_tx_time = current_time
-                    acction_ocurred = True
+                    action_ocurred = True
                     time.sleep(1)
 
         #Simular mineria
@@ -63,6 +63,14 @@ try:
             miner_node = random.choice(nodes)
             print(f"\n --- Evento: {miner_node.node_id} intenta minar ---")
             mined_block = miner_node.mine_block()
+            last_mine_time = current_time
+            action_ocurred = True
+            time.sleep(0.5)
+        
+        if not action_ocurred:
+            time.sleep(0.1)
+        else:
+            time.sleep(0.05)
             
 
 except KeyboardInterrupt:
