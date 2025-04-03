@@ -75,3 +75,29 @@ try:
 
 except KeyboardInterrupt:
     print(f"Simulacion interrumpida")
+
+finally:
+    print("\n --- Fin de la Simulacion ---")
+    print(f"Duracion total: {time.time()-start_time:.2f} segundos")
+
+    #Verificar consistencia de las cadenas
+    print("\nEstado final de los nodos:")
+    final_hashes = {}
+    max_len = 0
+    for node in nodes:
+        print(node)
+        last_hash = node.blockchain.last_block.calculate_hash() if node.blockchain.chain else "N/A"
+        chain_len = len(node.blockchain.chain)
+        max_len = max(max_len, chain_len)
+        if last_hash not in final_hashes:
+            final_hashes[last_hash] = []
+        final_hashes[last_hash].append(node.node_id)
+
+    print(f"\nLongitud maxima de la cadena: {max_len}")
+    print("Distribucion final de hashes")
+    for hash_val, node_ids in final_hashes.items():
+        print(f" -Hash {hash_val[:10]}...{len(node_ids)} nodos ({', '.join(node_ids)})")
+    if len(final_hashes) ==1:
+        print("\n---CONSNESO ALCANZADO")
+    else:
+        print("\nFORK ")
