@@ -1,22 +1,36 @@
 from blockchain import Blockchain
 from block import Block
 from transactions import Transaction, Wallet
-from typing import List, Any, Set # For type hinting
+from typing import List, Any, Set, Dict # For type hinting
 from time import time
+#import threading
+#import queue
 
 class Node:
     def __init__(self, node_id:str, difficulty:int=4):
+        #super().__init__(daemon=True) # Llamar al init del Thread, daemon=True para que termine si el principal termina
         self.node_id = node_id
         self.blockchain = Blockchain(difficulty)
         self.wallet = Wallet()
         self.mempool: Set[Transaction] = set()
         self.peers: List['Node'] = []
+        #self.peers_queues: Dict[str, queue.Queue] = {} #Almacena colas de enrada de los peers
+        #self.incoming_queue = queue.Queue() #Cola de entrada a este nodo
         self.known_tx_hashes: Set[str] = set()
         self.known_block_hashes: Set[str] = set()
         if self.blockchain.chain:
             self.known_block_hashes.add(self.blockchain.chain[0].hash)
 
-        print(f"Nodo {self.node_id} creado. Dirección Wallet: {self.wallet.get_address()[:10]}... Blockchain inicializada (Bloques: {len(self.blockchain.chain)})")
+        #self.node_list = node_list
+        #self.stop_event = stop_event
+
+        #self.is_minig = False #Flag para evitar minado en pararelo consigo mismo
+        #self.mining_thread = None #Referencia al hilo minero
+
+        #self.data_lock = threading.lock() #Lock para bloquear accesos concurrentes
+
+
+        print(f"Nodo {self.node_id} creado. Dirección Wallet: {self.wallet.get_address()[:10]}... ")
 
     def get_address(self) -> str:
         "Devuelve la dirección de la wallet del nodo"
