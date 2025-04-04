@@ -42,7 +42,7 @@ class Node:
             self.peers_queues[peer_node.node_id] = peer_node.incoming_queue
             print(f"Nodo {self.node_id}: Conectado a la cola de {peer_node.node_id}")
 
-    # --- Metodos de procesamiento, se llaman desde el run
+    # --- METODOS DE PROCESAMIENTO, se llaman desde el run
     def _handle_transaction(self, transaction: Transaction):
         '''Usar self.data_lock para proteger mempool y known_tx_hashes'''
         with self.data_lock:
@@ -58,9 +58,48 @@ class Node:
                 needs_broadcast = False
                 print(f"Nodo {self.node_id}: Tx {tx_hash[:8]} no valida o ya en mempool")
         if needs_broadcast:
-            #Terminar
             self._broadcast("transaction", transaction)
     
+    def _handle_block(self, block: Block):
+        with self.data_lock:
+            block_hash = block.calculate_hash()
+            if block_hash in self.known_block_hashes:
+                return
+            self.known_block_hashes.add(block_hash)
+            print(f"Nodo {self.node_id}: Recibo bloque {block.index} ({block_hash[:8]}...)")
+
+        # --VALIDACION (no necesita locks) ---
+        # 1. Validar PoW y hash interno
+        calculated_hash = block.calculate_hash()
+        if block_hash != calculated_hash or not block_hash.startswith('0'*self.blockchain.difficulty):
+            print(f"Nodo {self.node_id}: Bloque {block.index} no valido.")
+            return
+        
+        # 2. Validar transaciones internas
+        for tx in block.transactions:
+            if not tx.is_valid():
+                print(f"Nodo {self.node_id}: Bloque {block.index} no valido, (Tx interna no valida)")
+                return
+        
+        # --- MODIFICACION ESTADO  (necesita lock)---  
+        with self.data_lock:
+            last_local_block = self.blockchain.last_block #Leer ultimo bloque
+
+            # 3. Validar enlace (previous hash e index)
+            if block.index == last_local_block.index + 1 and block.previous_hash == last_local_block.hash:
+                #Bloque valido, extiende la cadena actual
+                print(f"Nodo {self.node_id}: Bloque {block.index} VALIDA, anadiendlo a blockchain")
+                self.blockchain.chain.append(block)
+
+                # Limpiar mempool
+                block_tx_hashes = {tx.calculate_hash() for tx in block.transactions}
+                self.mempool.difference_update(block_tx_hashes)
+                self.known_tx_hashes.difference_update(block_tx_hashes)
+
+                #Paramos minado
+                if self.is_minig:
+                    
+
     def _broadcast(self, msg_type:str, data:any):
         '''Envia mensaje a las colas de todos los peers conocidos'''
         print(f"Nodo {self.node_id}: transmitiendo {msg_type}...")
