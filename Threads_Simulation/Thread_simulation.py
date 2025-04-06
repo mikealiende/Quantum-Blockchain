@@ -10,7 +10,7 @@ import threading
 # --- CONFIGURACION ---
 NUM_NODES = 2
 INITIAL_DIFFICULTY = 4
-SIMULATION_TIME = 30  # seconds
+SIMULATION_TIME = 20  # seconds
 
 # --Inicializacion
 print("Iniciando la simulacion...")
@@ -94,11 +94,13 @@ finally:
     # Validar la cadena de bloques
     all_valid = True
     for node in nodes:
+        print(f"Validando cadena de {node.node_id}...")
         is_valid = node.blockchain.is_chain_valid()
         print(f" - Cadena {node.node_id}: {'Válida' if is_valid else 'No valida'}")
         if not is_valid:
             all_valid = False
         if not all_valid:
             print("Cadena no valida")
+        
             
 

@@ -85,21 +85,24 @@ class Blockchain:
         for i in range(1, len(self.chain)):
             current_block = self.chain[i]
             previous_block = self.chain[i-1]
-
+            hash_previous_block = previous_block.calculate_hash()
+            hash_current_block = current_block.calculate_hash()
             # Check if the block's stored hash is correct
-            if current_block.hash != current_block.calculate_hash():
-                print(f"Block {i}: Invalid hash")
-                return False
+            #if current_block.hash != current_block.calculate_hash():
+             #   print(f" - Block {i}: Invalid hash")
+                #return False
 
             # Check if it points to the previous block correctly
-            if current_block.previous_hash != previous_block.hash:
-                print(f"Block {i}: Invalid previous hash link")
+            if current_block.previous_hash != hash_previous_block:
+                print(f"- Block {i}: Invalid previous hash link")
                 return False
 
             # Check if PoW was satisfied for the block (optional, but good practice)
-            if not current_block.hash.startswith('0' * self.difficulty):
-                 print(f"Block {i}: Proof of Work requirement not met")
+            if not hash_current_block.startswith('0' * self.difficulty):
+                 print(f"- Block {i}: Proof of Work requirement not met")
                  return False
+            
+            print(f" - Block {i}: Valid block")
 
         print("Chain is valid.")
         return True

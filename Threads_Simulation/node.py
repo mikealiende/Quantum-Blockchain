@@ -87,7 +87,7 @@ class Node(threading.Thread):
             last_local_block = self.blockchain.last_block #Leer ultimo bloque
 
             # 3. Validar enlace (previous hash e index)
-            if block.index == last_local_block.index + 1 and block.previous_hash == last_local_block.hash:
+            if block.index == last_local_block.index + 1 and block.previous_hash == last_local_block.calculate_hash():
                 #Bloque valido, extiende la cadena actual
                 print(f"Nodo {self.node_id}: Bloque {block.index} VALIDA, anadiendlo a blockchain")
                 self.blockchain.chain.append(block)
@@ -100,7 +100,15 @@ class Node(threading.Thread):
                 #Paramos minado
                 if self.is_minig:
                     self._stop_mining()
-                    #TO DO
+                need_broadcast = True
+            else:
+                #Blqoue no valido
+                print(f"Nodo {self.node_id}: Bloque {block.index} no valido, (index o previous hash incorrecto)")
+                need_broadcast = False
+        # 4. Enviar bloque a los peers
+        if need_broadcast:
+            print(f"Nodo {self.node_id}: Transmitiendo bloque {block.index} ({block_hash[:8]}...)")
+            self._broadcast("block", block)
 
     def _broadcast(self, msg_type:str, data:any):
         '''Envia mensaje a las colas de todos los peers conocidos'''
@@ -119,7 +127,7 @@ class Node(threading.Thread):
                 print(f"Nodo {self.node_id}: Minado ya en curso")
                 return
             mempool_copy = list(self.mempool)
-            print(f"Nodo {self.node_id}: Copiando mempool ({len(mempool_copy)}) transacciones")
+            #print(f"Nodo {self.node_id}: Copiando mempool ({len(mempool_copy)}) transacciones")
 
             if not mempool_copy:
                 print(f"Nodo {self.node_id}: Nada que minar")
@@ -147,19 +155,21 @@ class Node(threading.Thread):
             return
         print(f"Nodo {self.node_id}: Iniciando minado de bloque con {len(transactions_to_mine)} Txs")
         last_block = self.blockchain.last_block
-        print(f"Nodo {self.node_id}: Ultimo bloque conocido: {last_block.index} ({last_block.hash[:8]}...)")
+        hash_last_block = last_block.calculate_hash()
+        print(f"Nodo {self.node_id}: Ultimo bloque conocido: {last_block.index} ({hash_last_block[:8]}...)")
 
         new_block_candidate = Block(
             index=last_block.index +1,
             timestamp=time.time(),
             transactions=transactions_to_mine,
-            previous_hash=last_block.hash,
+            previous_hash=hash_last_block,
             nonce=0
         )
 
         # --- BUCLE PoW ---
         target = '0' * self.blockchain.difficulty
         nonce = 0
+        print(f"Nodo {self.node_id}. Hash original del bloque candidato {new_block_candidate.index}: {new_block_candidate.calculate_hash()[:8]}...")
         while self.is_minig:
             new_block_candidate.nonce = nonce
             hash_result = new_block_candidate.calculate_hash()
