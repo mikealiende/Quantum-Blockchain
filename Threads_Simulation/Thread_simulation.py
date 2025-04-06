@@ -5,99 +5,100 @@ from typing import List, Any, Set # For type hinting
 import time
 from node import Node
 import random
+import threading
 
 # --- CONFIGURACION ---
-NUM_NODES = 4
+NUM_NODES = 2
 INITIAL_DIFFICULTY = 4
-SIMULATION_DURATION_SECONDS = 90
-TRANSACTIONS_INTERVAL_MEAN = 5
-MINING_INTERVAL_MEAN = 15
+SIMULATION_TIME = 30  # seconds
 
-#--- INICIALIZACION ---
-print("INICIANDO SIMULACION")
-nodes :List[Node] = []
+# --Inicializacion
+print("Iniciando la simulacion...")
+nodes : List[Node] = [] 
+threads = []
+stop_event = threading.Event() # Evento para detener los hilos
 
-#Crear nodos
-for i in range (NUM_NODES):
-    node_id = f"Nodo-{i}"
-    node = Node(node_id=node_id, difficulty=INITIAL_DIFFICULTY)
+# --Crear instancia de Bockchain
+shared_blockchain = Blockchain(difficulty=INITIAL_DIFFICULTY)
+
+# 1. Crear nodos sin inicializar
+for i in range(NUM_NODES):
+    node_id = f"Node-{i}"
+    node = Node(
+        node_id=node_id, 
+        blockchain_instance=shared_blockchain, 
+        node_list= nodes,
+        stop_event=stop_event)
     nodes.append(node)
-print(f"\n{len(nodes)} nodos creados.")
 
-#2 conectar los nodos
-print(f"Estableciendo conexiones entre peers...")
+# 2. Conectar los nodos entre si
+print("Conectando nodos...")
 if NUM_NODES > 1:
     for i in range(NUM_NODES):
-        for j in range (i+1, NUM_NODES):
-            #Conectar nodo i con j y viceversa
+        for j in range(i +1, NUM_NODES):
             nodes[i].add_peer(nodes[j])
             nodes[j].add_peer(nodes[i])
+else:
+    print("Solo hay un nodo")
 
-# --- BUCLE PRINCIPAL SIMULACION ---
+# 3. Inicilizar los hilos de los nodos
+for node in nodes:
+    node.start()
+    threads.append(node)
+
+print(f"Simulacion iniciada con {NUM_NODES} nodos por {SIMULATION_TIME} segundos.")
 start_time = time.time()
-last_tx_time = start_time
-last_mine_time = start_time
 
 try:
-    while time.time() - start_time < SIMULATION_DURATION_SECONDS:
-        current_time = time.time()
-        action_ocurred = False
-
-        #Simulamos creacion y transmision de transaciones
-        if current_time - last_tx_time > random.expovariate(1.0/TRANSACTIONS_INTERVAL_MEAN):
-            if len(nodes) >1:
-                sender_node = random.choice(nodes)
-                possible_recievers = [n for n in nodes if n.node_id != sender_node.node_id]
-                if possible_recievers:
-                    recipient_node = random.choice(possible_recievers)
-                    amount = round(random.uniform(0.1,5.0),2)
-
-                    print(f"\n--- Evento: {sender_node.node_id} crea Tx para {recipient_node.node_id} ---")
-                    sender_node.create_transaction(recipient_address=recipient_node.get_address(), amount=amount)
-                    last_tx_time = current_time
-                    action_ocurred = True
-                    time.sleep(1)
-
-        #Simular mineria
-        if current_time - last_mine_time > random.expovariate(1.0/ MINING_INTERVAL_MEAN):
-            miner_node = random.choice(nodes)
-            print(f"\n --- Evento: {miner_node.node_id} intenta minar ---")
-            mined_block = miner_node.mine_block()
-            last_mine_time = current_time
-            action_ocurred = True
-            time.sleep(0.5)
-        
-        if not action_ocurred:
-            time.sleep(0.1)
-        else:
-            time.sleep(0.05)
-            
-
+    time.sleep(SIMULATION_TIME)
 except KeyboardInterrupt:
-    print(f"Simulacion interrumpida")
+    print("Simulacion detenida por el usuario.")
 
 finally:
-    print("\n --- Fin de la Simulacion ---")
-    print(f"Duracion total: {time.time()-start_time:.2f} segundos")
+    print("Deteniendo la simulacion...")
+    stop_event.set() # Señal para detener los hilos
+    for thread in threads:
+        thread.join(timeout=5) # Espera a que los hilos terminen
+        if thread.is_alive():
+            print(f"{thread.node_id} no ha terminado correctamente.")
+    print("\nFin de la simulacion.")
+    print(f"Duración {time.time() - start_time:-2f} segundos.")
 
-    #Verificar consistencia de las cadenas
     print("\nEstado final de los nodos:")
     final_hashes = {}
     max_len = 0
     for node in nodes:
-        print(node)
-        last_hash = node.blockchain.last_block.calculate_hash() if node.blockchain.chain else "N/A"
         chain_len = len(node.blockchain.chain)
+        last_hash = node.blockchain.last_block.calculate_hash() if chain_len > 0 else "N/A"
+        print(f"Nodo {node.node_id}: Bloques={chain_len}, hash={last_hash[:8]}..., mempool= {len(node.mempool)}")
+
         max_len = max(max_len, chain_len)
         if last_hash not in final_hashes:
             final_hashes[last_hash] = []
         final_hashes[last_hash].append(node.node_id)
-
-    print(f"\nLongitud maxima de la cadena: {max_len}")
-    print("Distribucion final de hashes")
+    
+    print(f"Cadena mas laga: {max_len} bloques")
+    print("Hashes finales:")
     for hash_val, node_ids in final_hashes.items():
-        print(f" -Hash {hash_val[:10]}...{len(node_ids)} nodos ({', '.join(node_ids)})")
-    if len(final_hashes) ==1:
-        print("\n---CONSNESO ALCANZADO")
+        print(f" - Hash {hash_val[:8]}...: {len(node_ids)} nodos ({','. join(node_ids)})")
+    if len(final_hashes) == 1:
+        print("CONSENSO")
     else:
-        print("\nFORK ")
+        print("INCONSISTENCIA")
+
+    node1 = nodes[0]
+    print(f"\nCadena de bloques de {node1.node_id}:")
+    for block in node1.blockchain.chain:
+        print(f" - Bloque {block.index}: {block.calculate_hash()[:8]}... Tx: {len(block.transactions)}, Prevous: {block.previous_hash[:8]}...")
+
+    # Validar la cadena de bloques
+    all_valid = True
+    for node in nodes:
+        is_valid = node.blockchain.is_chain_valid()
+        print(f" - Cadena {node.node_id}: {'Válida' if is_valid else 'No valida'}")
+        if not is_valid:
+            all_valid = False
+        if not all_valid:
+            print("Cadena no valida")
+            
+
