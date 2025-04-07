@@ -4,13 +4,13 @@ from transactions import Transaction
 from typing import List, Any, Set # For type hinting
 import time
 from node import Node
-import random
+import copy
 import threading
 
 # --- CONFIGURACION ---
-NUM_NODES = 2
+NUM_NODES = 3
 INITIAL_DIFFICULTY = 4
-SIMULATION_TIME = 20  # seconds
+SIMULATION_TIME = 30  # seconds
 
 # --Inicializacion
 print("Iniciando la simulacion...")
@@ -19,14 +19,15 @@ threads = []
 stop_event = threading.Event() # Evento para detener los hilos
 
 # --Crear instancia de Bockchain
-shared_blockchain = Blockchain(difficulty=INITIAL_DIFFICULTY)
+initial_blockchain_template = Blockchain(difficulty=INITIAL_DIFFICULTY)
 
 # 1. Crear nodos sin inicializar
 for i in range(NUM_NODES):
     node_id = f"Node-{i}"
+    node_block_chain_copy = copy.deepcopy(initial_blockchain_template)
     node = Node(
         node_id=node_id, 
-        blockchain_instance=shared_blockchain, 
+        blockchain_instance=node_block_chain_copy, 
         node_list= nodes,
         stop_event=stop_event)
     nodes.append(node)
@@ -86,10 +87,10 @@ finally:
     else:
         print("INCONSISTENCIA")
 
-    node1 = nodes[0]
-    print(f"\nCadena de bloques de {node1.node_id}:")
-    for block in node1.blockchain.chain:
-        print(f" - Bloque {block.index}: {block.calculate_hash()[:8]}... Tx: {len(block.transactions)}, Prevous: {block.previous_hash[:8]}...")
+    for node in nodes:
+        print(f"\nCadena de bloques de {node.node_id}:")
+        for block in node.blockchain.chain:
+            print(f" - Bloque {block.index}: {block.calculate_hash()[:8]}... Tx: {len(block.transactions)}, Prevous: {block.previous_hash[:8]}..., Minado por {block.mined_by}")
 
     # Validar la cadena de bloques
     all_valid = True

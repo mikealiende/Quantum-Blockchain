@@ -14,10 +14,11 @@ class Blockchain:
 
     def create_genesis_block(self):
         # Manually construct the first block with previous_hash="0"
-        genesis_block = Block(0, time(), [], "0")
+        genesis_block = Block(0, time(), [], "0", "none")
         # Bitcoin's genesis block required finding a nonce, but we can simplify here initially
         # Or implement PoW for genesis too if desired
         genesis_block.hash = genesis_block.calculate_hash() # Recalculate if needed
+
         self.chain.append(genesis_block)
 
     @property
@@ -101,8 +102,6 @@ class Blockchain:
             if not hash_current_block.startswith('0' * self.difficulty):
                  print(f"- Block {i}: Proof of Work requirement not met")
                  return False
-            
-            print(f" - Block {i}: Valid block")
 
         print("Chain is valid.")
         return True

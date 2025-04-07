@@ -4,13 +4,15 @@ from time import time
 from typing import List, Any # For type hinting
 from transactions import Transaction
 
+
 class Block:
-    def __init__(self, index: int, timestamp: float, transactions: List[Transaction], previous_hash: str, nonce: int = 0):
+    def __init__(self, index: int, timestamp: float, transactions: List[Transaction], previous_hash: str, mined_by : str, nonce: int = 0):
         self.index = index
         self.timestamp = timestamp
         self.transactions = transactions # List of Transaction objects or dictionaries
         self.previous_hash = previous_hash
         self.nonce = nonce
+        self.mined_by = mined_by
         self.hash = self.calculate_hash() # Calculate hash upon creation
 
     def calculate_hash(self) -> str:
