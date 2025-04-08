@@ -8,9 +8,9 @@ import copy
 import threading
 
 # --- CONFIGURACION ---
-NUM_NODES = 3
-INITIAL_DIFFICULTY = 4
-SIMULATION_TIME = 30  # seconds
+NUM_NODES = 4
+INITIAL_DIFFICULTY = 5
+SIMULATION_TIME = 500  # seconds
 
 # --Inicializacion
 print("Iniciando la simulacion...")

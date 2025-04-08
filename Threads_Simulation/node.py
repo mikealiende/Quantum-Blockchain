@@ -65,10 +65,10 @@ class Node(threading.Thread):
         with self.data_lock:
             block_hash = block.calculate_hash()
             if block_hash in self.known_block_hashes:
+                print(f"Nodo {self.node_id}: Bloque {block.index} Ya conocido")
                 return
             self.known_block_hashes.add(block_hash)
-            print(f"Nodo {self.node_id}: Recibo bloque {block.index} ({block_hash[:8]}...)")
-
+            
         # --VALIDACION (no necesita locks) ---
         # 1. Validar PoW y hash interno
         calculated_hash = block.calculate_hash()
@@ -171,11 +171,12 @@ class Node(threading.Thread):
         target = '0' * self.blockchain.difficulty
         nonce = 0
         #print(f"Nodo {self.node_id}. Hash original del bloque candidato {new_block_candidate.index}: {new_block_candidate.calculate_hash()[:8]}...")
+        start_mining_time = time.time()
         while self.is_minig:
             new_block_candidate.nonce = nonce
             hash_result = new_block_candidate.calculate_hash()
             if hash_result.startswith(target):
-                print(f"Nodo {self.node_id}: BLOQUE MINADO! con nonce {nonce} ({hash_result[:8]}...)")
+                print(f"Nodo {self.node_id}: BLOQUE MINADO! con nonce {nonce} ({hash_result[:8]}...). Tiempo de minado: {(time.time()-start_mining_time):.2f}")
                 self.incoming_queue.put(("mined_block", new_block_candidate)) #Enviar bloque minado a la cola de entrada
                 self.is_minig = False #Parar el hilo de minado
                 return
