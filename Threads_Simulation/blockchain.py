@@ -105,3 +105,7 @@ class Blockchain:
 
         print("Chain is valid.")
         return True
+    
+    
+            
+    

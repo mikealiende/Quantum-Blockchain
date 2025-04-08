@@ -6,6 +6,7 @@ import time
 import threading
 import queue
 import random
+from graphviz import Digraph
 
 class Node(threading.Thread):
     def __init__(self, node_id:str, blockchain_instance = Blockchain, node_list: list = None, stop_event: threading.Event = None):
@@ -254,3 +255,65 @@ class Node(threading.Thread):
                     self._broadcast("transaction", tx)
         else:
             print(f"Nodo {self.node_id}: ERROR Tx {tx_hash[:8]}...")
+
+    # --- UTILITIES ---
+    def visualize_chain(self, filename: str = None, max_blocks:int = None):
+        
+        if filename is None:
+            filename = f"simulation{self.node_id}_chain"
+        print(f"\n--- Generando visualizacion para {self.node_id}")
+
+        dot = Digraph(comment=f'Blockchain de {self.node_id}', format='png')
+        # rankdir='TB' (Top to Bottom) puede ser más natural para una sola cadena
+        dot.attr(rankdir='TB')
+        dot.attr('node', shape='record', style='filled', color='lightblue')
+        dot.attr(label=f'Cadena del Nodo: {self.node_id}', fontsize='16') # Título del grafo
+
+        chain_to_visualize = self.blockchain.chain
+        if not chain_to_visualize:
+            print(f"Nodo {self.node_id}: sin cadena")
+            return
+        if max_blocks and len(chain_to_visualize) > max_blocks:
+            print(f"Mostrando los ultimos {max_blocks} bloques de {len(chain_to_visualize)}")
+            chain_to_visualize = chain_to_visualize[-max_blocks:]
+        start_index = self.blockchain.chain.index(chain_to_visualize[0])
+
+        for i, block in enumerate(chain_to_visualize):
+            actual_index = start_index + i # El índice real del bloque en la cadena completa
+            miner_info = getattr(block, 'mined_by', 'N/A') # Asume atributo 'mined_by'
+            label = (f"{{ {actual_index}: Bloque {block.index} | " # Usar índice real para título
+                     f"Hash: {block.hash[:8]}... | "
+                     f"Prev: {block.previous_hash[:8]}... | "
+                     f"Nonce: {block.nonce} | "
+                     f"Txs: {len(block.transactions)} | "
+                     f"Minado por: {block.mined_by} }}")
+
+            # Usar el hash como ID único para el nodo graphviz
+            node_id = block.hash
+
+            dot.node(node_id, label=label)
+
+            # Marcar el nodo génesis si está en la vista
+            if block.previous_hash == "0":
+                 dot.node(node_id, _attributes={'style': 'filled', 'color':'lightgreen'})
+
+        # 2. Añadir aristas (conexiones) entre los bloques VISUALIZADOS
+        #    Asume que la lista `chain_to_visualize` es secuencialmente correcta para este nodo
+        for i in range(1, len(chain_to_visualize)):
+            prev_block = chain_to_visualize[i-1]
+            current_block = chain_to_visualize[i]
+
+            # Añadir eje desde el hash del bloque anterior al hash del actual
+            # La validación visual se hará comparando el "Prev:" del bloque actual
+            # con el "Hash:" del bloque anterior en la imagen.
+            dot.edge(prev_block.hash, current_block.hash)
+
+
+        # 3. Renderizar
+        try:
+            # Puedes añadir engine='dot' si quieres especificarlo
+            output_path = dot.render(filename, view=False, cleanup=True)
+            print(f"  Visualización para {self.node_id} guardada como: {output_path}")
+        except Exception as e:
+            print(f"\n  Error al generar Graphviz para {self.node_id}: {e}")
+            print("  Verifica que Graphviz esté instalado y en el PATH.")

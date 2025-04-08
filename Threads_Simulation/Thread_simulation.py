@@ -7,10 +7,11 @@ from node import Node
 import copy
 import threading
 
+
 # --- CONFIGURACION ---
-NUM_NODES = 4
+NUM_NODES = 3
 INITIAL_DIFFICULTY = 5
-SIMULATION_TIME = 500  # seconds
+SIMULATION_TIME = 100  # seconds
 
 # --Inicializacion
 print("Iniciando la simulacion...")
@@ -87,10 +88,14 @@ finally:
     else:
         print("INCONSISTENCIA")
 
-    for node in nodes:
+    '''for node in nodes:
         print(f"\nCadena de bloques de {node.node_id}:")
         for block in node.blockchain.chain:
-            print(f" - Bloque {block.index}: {block.calculate_hash()[:8]}... Tx: {len(block.transactions)}, Prevous: {block.previous_hash[:8]}..., Minado por {block.mined_by}")
+            print(f" - Bloque {block.index}: {block.calculate_hash()[:8]}... Tx: {len(block.transactions)}, Prevous: {block.previous_hash[:8]}..., Minado por {block.mined_by}")'''
+
+    node_to_print = nodes[0]
+    node_to_print.visualize_chain()
+
 
     # Validar la cadena de bloques
     all_valid = True
