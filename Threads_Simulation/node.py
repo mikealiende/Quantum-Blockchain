@@ -264,7 +264,6 @@ class Node(threading.Thread):
         print(f"\n--- Generando visualizacion para {self.node_id}")
 
         dot = Digraph(comment=f'Blockchain de {self.node_id}', format='png')
-        # rankdir='TB' (Top to Bottom) puede ser más natural para una sola cadena
         dot.attr(rankdir='TB')
         dot.attr('node', shape='record', style='filled', color='lightblue')
         dot.attr(label=f'Cadena del Nodo: {self.node_id}', fontsize='16') # Título del grafo

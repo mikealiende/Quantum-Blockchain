@@ -153,7 +153,7 @@ class Block:
 
 
     def __str__(self):
-        # For easy printing/representation
+        # Imprimir por pantalla
         status = "MINADO" if self.hash else "PENDIENTE"
         sol_prewiew = "N/A"
         if self.partition_solution:

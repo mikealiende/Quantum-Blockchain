@@ -1,9 +1,9 @@
 from ecdsa import SigningKey, VerifyingKey, SECP256k1
-import binascii # To convert keys/signatures to hex
+import binascii 
 import hashlib
 import json
 from time import time
-from typing import List, Any # For type hinting
+from typing import List, Any 
 
 class Wallet:
 
@@ -50,7 +50,7 @@ class Transaction:
 
     def is_valid(self) -> bool:
         if not self.signature:
-            print("Transaction is not signed")
+            print("Transaction no firmada")
             return False
         
         try:

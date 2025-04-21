@@ -3,20 +3,16 @@ digraph {
 	rankdir=TB
 	node [color=lightblue shape=record style=filled]
 	fontsize=16 label="Cadena del Nodo: Node-0"
-	"5e01adf74563c7d5e722b2109f9e1e39a1960d47c91e036e8abd4f3d76227415" [label="{ 0: Bloque 0 | Hash: 5e01adf7... | Prev: 0... | Nonce: 0 | Txs: 0 | Minado por: none }"]
-	"5e01adf74563c7d5e722b2109f9e1e39a1960d47c91e036e8abd4f3d76227415" [color=lightgreen style=filled]
-	"14dd04113b6d9c77cd182c3f2aa1022a08243c4f0be5ba324fdde8194d7f3837" [label="{ 1: Bloque 1 | Hash: 14dd0411... | Prev: 5e01adf7... | Nonce: 71678 | Txs: 1 | Minado por: Node-1 }"]
-	b30760f4f4413881a76b4c207aa7f4703401b95d5056ba0241bb4d2c03c3e7fe [label="{ 2: Bloque 2 | Hash: b30760f4... | Prev: 00000931... | Nonce: 293763 | Txs: 2 | Minado por: Node-2 }"]
-	"32a647be39b0bab2db89d40f528b450558a47259c349009d19723d3cb26af3ef" [label="{ 3: Bloque 3 | Hash: 32a647be... | Prev: 0000093a... | Nonce: 182430 | Txs: 5 | Minado por: Node-2 }"]
-	"60e36e468c46ccfcbfd5d7704d565916ea3d42e9e054131d27fed4ca60b724d6" [label="{ 4: Bloque 4 | Hash: 60e36e46... | Prev: 00000d44... | Nonce: 517977 | Txs: 6 | Minado por: Node-0 }"]
-	ff518c3d8cd3a7cf32173e750c1863fec72becf9cad0e98c5052805681770f24 [label="{ 5: Bloque 5 | Hash: ff518c3d... | Prev: 00000bc6... | Nonce: 274029 | Txs: 13 | Minado por: Node-1 }"]
-	"25998ea947d22333089d1bca2233e8865934794e7350af50058feb668a098e82" [label="{ 6: Bloque 6 | Hash: 25998ea9... | Prev: 000008fa... | Nonce: 1376418 | Txs: 32 | Minado por: Node-0 }"]
-	"299f336a5e9495ebd29f8c07ae9145d10fded72fe543f4e6cb5e8a5add0712b7" [label="{ 7: Bloque 7 | Hash: 299f336a... | Prev: 00000e6a... | Nonce: 114172 | Txs: 55 | Minado por: Node-2 }"]
-	"5e01adf74563c7d5e722b2109f9e1e39a1960d47c91e036e8abd4f3d76227415" -> "14dd04113b6d9c77cd182c3f2aa1022a08243c4f0be5ba324fdde8194d7f3837"
-	"14dd04113b6d9c77cd182c3f2aa1022a08243c4f0be5ba324fdde8194d7f3837" -> b30760f4f4413881a76b4c207aa7f4703401b95d5056ba0241bb4d2c03c3e7fe
-	b30760f4f4413881a76b4c207aa7f4703401b95d5056ba0241bb4d2c03c3e7fe -> "32a647be39b0bab2db89d40f528b450558a47259c349009d19723d3cb26af3ef"
-	"32a647be39b0bab2db89d40f528b450558a47259c349009d19723d3cb26af3ef" -> "60e36e468c46ccfcbfd5d7704d565916ea3d42e9e054131d27fed4ca60b724d6"
-	"60e36e468c46ccfcbfd5d7704d565916ea3d42e9e054131d27fed4ca60b724d6" -> ff518c3d8cd3a7cf32173e750c1863fec72becf9cad0e98c5052805681770f24
-	ff518c3d8cd3a7cf32173e750c1863fec72becf9cad0e98c5052805681770f24 -> "25998ea947d22333089d1bca2233e8865934794e7350af50058feb668a098e82"
-	"25998ea947d22333089d1bca2233e8865934794e7350af50058feb668a098e82" -> "299f336a5e9495ebd29f8c07ae9145d10fded72fe543f4e6cb5e8a5add0712b7"
+	"4732475e775267c25a6aa424b9a91a549273bb98528e472fad7a4b55205ca55e" [label="{ 0: Bloque 0 | Hash: 4732475e... | Prev: 0... | Nonce: 0 | Txs: 0 | Minado por: none }"]
+	"4732475e775267c25a6aa424b9a91a549273bb98528e472fad7a4b55205ca55e" [color=lightgreen style=filled]
+	fe85fefb7feee058e20b472bfbd51da5ed656570e4c30956a96bea6f5f6d37fd [label="{ 1: Bloque 1 | Hash: fe85fefb... | Prev: 4732475e... | Nonce: 11315 | Txs: 5 | Minado por: Node-1 }"]
+	"77f7d28d00bc8d581e74041c938497090435b889b6691c93fc206510cf632222" [label="{ 2: Bloque 2 | Hash: 77f7d28d... | Prev: 000006bd... | Nonce: 949840 | Txs: 6 | Minado por: Node-0 }"]
+	a92833ff0a6522f0dd86a1998aa8aeaf11fa804c7c192f7c8758c9458d150cbb [label="{ 3: Bloque 3 | Hash: a92833ff... | Prev: 000006dc... | Nonce: 927828 | Txs: 20 | Minado por: Node-0 }"]
+	"5fa921f5466bb3122d9a73a06629bddd56f0d31ca068103ef90b6db6185420a6" [label="{ 4: Bloque 4 | Hash: 5fa921f5... | Prev: 00000a77... | Nonce: 83312 | Txs: 42 | Minado por: Node-2 }"]
+	b7585185becef990991692ac4951ec55f6ac33a9721aca91f8b0dfcbb69fa9f9 [label="{ 5: Bloque 5 | Hash: b7585185... | Prev: 00000a4b... | Nonce: 287649 | Txs: 49 | Minado por: Node-2 }"]
+	"4732475e775267c25a6aa424b9a91a549273bb98528e472fad7a4b55205ca55e" -> fe85fefb7feee058e20b472bfbd51da5ed656570e4c30956a96bea6f5f6d37fd
+	fe85fefb7feee058e20b472bfbd51da5ed656570e4c30956a96bea6f5f6d37fd -> "77f7d28d00bc8d581e74041c938497090435b889b6691c93fc206510cf632222"
+	"77f7d28d00bc8d581e74041c938497090435b889b6691c93fc206510cf632222" -> a92833ff0a6522f0dd86a1998aa8aeaf11fa804c7c192f7c8758c9458d150cbb
+	a92833ff0a6522f0dd86a1998aa8aeaf11fa804c7c192f7c8758c9458d150cbb -> "5fa921f5466bb3122d9a73a06629bddd56f0d31ca068103ef90b6db6185420a6"
+	"5fa921f5466bb3122d9a73a06629bddd56f0d31ca068103ef90b6db6185420a6" -> b7585185becef990991692ac4951ec55f6ac33a9721aca91f8b0dfcbb69fa9f9
 }
