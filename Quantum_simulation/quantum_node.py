@@ -7,6 +7,8 @@ import threading
 import queue
 import random
 from graphviz import Digraph
+import hashlib
+import networkx as nx
 
 class Node(threading.Thread):
     def __init__(self, node_id:str, blockchain_instance = Blockchain, node_list: list = None, stop_event: threading.Event = None):
@@ -31,8 +33,13 @@ class Node(threading.Thread):
 
         self.data_lock = threading.Lock() #Lock para bloquear accesos concurrentes
 
+        # -- Parametos PoW Max-Cut --
+        self.N = self.blockchain.N #Numero de nodos del grafo
+        self.p = self.blockchain.p #Probabilidad de arista
 
-        print(f"Nodo {self.node_id} creado. Dirección Wallet: {self.wallet.get_address()[:10]}... ")
+
+
+        print(f"Nodo {self.node_id} creado. Dirección Wallet: {self.wallet.get_address()[:10]}... Parametros Max-Cut: N={self.N}, p={self.p}")
 
     def get_address(self) -> str:
         "Devuelve la dirección de la wallet del nodo"
@@ -63,53 +70,86 @@ class Node(threading.Thread):
             self._broadcast("transaction", transaction)
     
     def _handle_block(self, block: Block):
+        '''Maneja bloques entrantes. Validacion max-cut'''
+        # 1. Comporbar si conecemos el bloque
+        block_hash  = block.hash
         with self.data_lock:
-            block_hash = block.calculate_hash()
             if block_hash in self.known_block_hashes:
-                print(f"Nodo {self.node_id}: Bloque {block.index} Ya conocido")
+                print(f"Nodo {self.node_id}: Blque {block_hash[:8]} ya conocido")
                 return
             self.known_block_hashes.add(block_hash)
-            
-        # --VALIDACION (no necesita locks) ---
-        # 1. Validar PoW y hash interno
-        calculated_hash = block.calculate_hash()
-        if block_hash != calculated_hash or not block_hash.startswith('0'*self.blockchain.difficulty):
-            print(f"Nodo {self.node_id}: Bloque {block.index} no valido.")
+            last_local_block = self.blockchain.last_block
+        
+        # Validar bloque (fuera de lock)
+        if not last_local_block:
+            print(f"Nodo {self.node_id}: No hay last block conocido")
             return
         
-        # 2. Validar transaciones internas
-        for tx in block.transactions:
-            if not tx.is_valid():
-                print(f"Nodo {self.node_id}: Bloque {block.index} no valido, (Tx interna no valida)")
-                return
+        # 2. Validar enlace
+        if block.index != last_local_block.index + 1:
+            print(f"Nodeo {self.node_id}: Error: Index del bloque {block.index} no es correcto (esperado {last_local_block.index + 1})")
+            return
+        if block.previous_hash != last_local_block.calculate_final_hash():
+            print(f"Nodo {self.node_id}: Error: Hash previo del bloque {block.index} no es correcto")
+            print(f"  Esperado: {last_local_block.calculate_final_hash()[:8]}... - Recibido: {block.previous_hash[:8]}...")
+            return
         
-        # --- MODIFICACION ESTADO  (necesita lock)---  
+        # 3. Generar grafo
+        try:
+            graph_for_validation = block.generate_graph()
+        except Exception as e:
+            print(f"Nodo {self.node_id}: Error al generar grafo para validar bloque: {e}")
+            return
+
+        # 4. Validar PoW
+        is_pow_valid, calculated_cut = block.validate_PoW(graph_for_validation)
+        if not is_pow_valid:
+            print(f"Nodo {self.node_id}: Error en la validacion de PoW del bloque {block.index}. Corte = {calculated_cut}, Targert = {block.target_cut_size}")
+            return
+
+        # 5. Validar el hash final
+        try:
+            expected_hash = block.calculate_final_hash()
+            if block.hash != expected_hash:
+                print(f"Nodo {self.node_id}: Bloque {block.index} no valido. Hash final no coincide")
+                return
+        except ValueError as e:
+            print(f"Nodo {self.node_id}: Error al calcular el hash final del bloque {block.index}: {e}")
+            return
+        except Exception as e:
+            print(f"Nodo {self.node_id}: Error inesperado al calcular el hash final del bloque {block.index}: {e}")
+            return
+        
+        # --- Bloque valido ---
+        print(f"Nodo {self.node_id}: Bloque {block.index} valido. Hash: {block.hash[:8]}... - Corte: {calculated_cut} - Target: {block.target_cut_size}")
+
+        # --- Modifiacion estado (con lock) ---
         with self.data_lock:
-            last_local_block = self.blockchain.last_block #Leer ultimo bloque
-            #print(f"Nodo {self.node_id}: Validando bloque {block.index}. Previous hash del bloque a validar: {block.previous_hash[:8]}.Hash del ultimo bloque de la blockchain: {last_local_block.calculate_hash()[:8]}")
-            # 3. Validar enlace (previous hash e index)
-            if block.index == last_local_block.index + 1 and block.previous_hash == last_local_block.calculate_hash():
-                #Bloque valido, extiende la cadena actual
-                print(f"Nodo {self.node_id}: Bloque {block.index} VALIDA, anadiendlo a blockchain")
-                self.blockchain.chain.append(block)
+            # Volver a comprobar si la cadena cambió fuera del lock
+            current_last_block = self.blockchain.last_block
+            if block.previous_hash == current_last_block.calculate_final_hash():
+                # Anadir a la blockchain
+                if self.blockchain.add_block(block):
+                    print(f"Nodo {self.node_id}: Añadiendo bloque {block.index} a la cadena local")
+                    block_tx_ids = { hashlib.sha256(str(tx).encode()).hexdigest() for tx in block.transactions }
+                    self.mempool = {tx for tx in self.mempool if hashlib.sha256(str(tx).encode()).hexdigest() not in block_tx_ids}
 
-                # Limpiar mempool
-                block_tx_hashes = {tx.calculate_hash() for tx in block.transactions}
-                self.mempool.difference_update(block_tx_hashes)
-                self.known_tx_hashes.difference_update(block_tx_hashes)
-
-                #Paramos minado
-                if self.is_minig:
-                    self._stop_mining()
-                need_broadcast = True
+                    if self.is_minig:
+                        self._stop_mining()
+                    needs_broadcast = True
+                else:
+                    #add_block fallo
+                    print(f"Nodo {self.node_id}: Error al añadir bloque {block.index} a la cadena local")
+                    needs_broadcast = False
             else:
-                #Blqoue no valido
-                print(f"Nodo {self.node_id}: Bloque {block.index} no valido, (index o previous hash incorrecto)")
-                need_broadcast = False
-        # 4. Enviar bloque a los peers
-        if need_broadcast:
-            print(f"Nodo {self.node_id}: Transmitiendo bloque {block.index} ({block_hash[:8]}...)")
+                print(f"Nodo {self.node_id}: Error al añadir bloque {block.index} a la cadena local. Hash previo no coincide")
+                needs_broadcast = False
+
+        if needs_broadcast:
             self._broadcast("block", block)
+
+
+
 
     def _broadcast(self, msg_type:str, data:any):
         '''Envia mensaje a las colas de todos los peers conocidos'''
@@ -121,6 +161,9 @@ class Node(threading.Thread):
             except queue.Full:
                 print(f"Nodo {self.node_id}: WARN - Cola del peer {peer_id} llena. Mensaje descartado")
     
+
+    #TODO: seguir aqui...
+
     def _start_mining(self):
         '''Inicia el hilo de minado'''  
         with self.data_lock:

@@ -50,21 +50,6 @@ class Block:
              tx_concat = "".join(tx_strings)
              return hashlib.sha256(tx_concat.encode()).hexdigest()
 
-    '''
-    def calculate_hash(self) -> str:
-        # Ensure consistent hashing by sorting dictionary keys if transactions are dicts
-        # Or use a consistent representation of Transaction objects
-        block_string = json.dumps({
-            "index": self.index,
-            "timestamp": self.timestamp,
-            # Make sure transaction representation is deterministic
-            "transactions": [str(tx) for tx in self.transactions],
-            "previous_hash": self.previous_hash,
-            "nonce": self.nonce
-        }, sort_keys=True).encode()
-        return hashlib.sha256(block_string).hexdigest()
-        '''
-
     def get_header_data_for_hash(self) -> Dict[str, Any]:
         '''Prepara los datos de cabecera que usaran para calcular el hash final'''
 

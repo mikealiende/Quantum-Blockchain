@@ -65,26 +65,50 @@ class Blockchain:
         '''Añadir un bloque después de la validación'''
         with self.lock:
             last_block =self.last_block
+            if not last_block:
+                print("No hay bloques en la cadena")
+                return False
+            
+            '''--- Validacion básica ---'''
+
+            # 1. Validar index  
+            if block.index != last_block.index + 1:
+                print(f"Error: Index del bloque {block.index} no es correcto")
+                return False
+            
+            # 2. Validar hash previo
+            if block.previous_hash != last_block.calculate_final_hash():
+                print(f"Error: Hash previo del bloque {block.index} no es correcto")
+                return False
+            
+            # 3. Validar integridad. El hash del bloque debe coincidir con el hash calculado
+            try:
+                expexted_hash = block.calculate_final_hash()
+                if block.hash != expexted_hash:
+                    print(f"Error: Hash del bloque {block.index} no es correcto")
+                    return False
+            except ValueError:
+                print(f"Error al calcular el hash del bloque {block.index}")
+                return False
+            
+            print(f"Bloque {block.index} con hash: {block.hash[:8]}... añadido a la cadena")
+            self.chain.append(block)
+
+            # Limpiar mempool
+            try:
+                block_tx_ids = {tx.get("id", str(tx)) for tx in block.transactions}
+                self.pending_transactions = [tx for tx in self.pending_transactions if tx.get("id", str(tx)) not in block_tx_ids]
+
+            except Exception as e:
+                print(f"Error al limpiar el mempool: {e}")
+                return False
+            
+            return True
 
     def is_chain_valid(self) -> bool:
-        for i in range(1, len(self.chain)):
-            current_block = self.chain[i]
-            previous_block = self.chain[i-1]
-            hash_previous_block = previous_block.calculate_hash()
-            hash_current_block = current_block.calculate_hash()
-            
-            if current_block.previous_hash != hash_previous_block:
-                print(f"- Block {i}: Previous hash no concuerda")
-                return False
 
-            
-            if not hash_current_block.startswith('0' * self.difficulty):
-                 print(f"- Block {i}: Requisitos de la Proof of Work no cumplen")
-                 return False
+        # TODO: Validar la cadena de bloques
+        with self.lock:
+            if not self.chain: return False
 
-        print("Cadena valida.")
-        return True
-    
-    
-            
-    
+        
