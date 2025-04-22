@@ -1,7 +1,9 @@
 import hashlib
 import json
 from time import time
-from typing import List, Any, Dict, Tuple, Optional # For type hinting
+from typing import List, Any, Dict, Tuple, Optional
+
+import numpy as np
 from transactions import Transaction
 import random
 import networkx as nx
@@ -16,7 +18,7 @@ class Block:
                  mined_by : str, 
                  protocol_N: int, #Numero de nodos del grafo
                  protocol_p: float, #Probabilidad de arista
-                 target_cut_size: int = 0
+                 difficulty_ratio: float = 0.5
                  ):
         
         
@@ -29,7 +31,7 @@ class Block:
         # Parametros Max-Cut
         self.graph_N = protocol_N
         self.graph_p = protocol_p
-        self.target_cut_size = target_cut_size
+        self.difficulty_ratio = difficulty_ratio
         self.partition_solution = None # 
         self.transaction_hash: str = self._calculate_transaction_hash()
         self.hash  : Optional[str] = None
@@ -62,7 +64,7 @@ class Block:
             "transactions_hash": self.transactions.calculate_hash(),
             "previous_hash": self.previous_hash,
             "mined_by": self.mined_by,
-            "target_cut_size": self.target_cut_size,
+            "difficulty_ratio": self.difficulty_ratio,
             "graph_N": self.graph_N,
             "graph_p": self.graph_p,
             "partition_solution": self.partition_solution,
@@ -94,6 +96,12 @@ class Block:
                     G.add_edge(i, j)
         return G
     
+    def calculate_target(self) -> int:
+        graph = self.generate_graph()
+        target = np.floor(self.difficulty_ratio * graph.number_of_edges())
+        return target
+        
+    
     @staticmethod
     def _calculate_cut_size(graph: nx.Graph, partition: List[int]) -> int:
         '''Calcula el tamaño del corte dado un grafo y una particion'''
@@ -113,6 +121,7 @@ class Block:
         '''
         Valida si la partition_solution del bloque es correcta
         '''
+        print("Ha llegado aqui")
         if self. partition_solution is None:
             print("No hay solucion de particion para validar")
             return False, -1
@@ -126,8 +135,11 @@ class Block:
                 print(f"Error bloque {self.index}: El grafo generado no tiene el mismo numero de nodos que el bloque")
                 return False, -1
             
+            #Calcuar target en funcion de las aristas del grafo generado y de difficulty_ratio
+            target_cut = self.calculate_target()
+            
             calculated_cut = Block._calculate_cut_size(current_graph, self.partition_solution)
-            is_valid = calculated_cut >= self.target_cut_size
+            is_valid = calculated_cut >= target_cut
             return is_valid, calculated_cut
         except ValueError as e:
             print(f"Error en la validacion de PoW: {e}")
@@ -146,7 +158,7 @@ class Block:
             sol_prewiew = sol_str[:8] + "..." + sol_str[-8:] if len(sol_str) > 16 else sol_str
 
         return (f"Block #{self.index} [{status}] "
-                f"TargetCut: >= {self.target_cut_size} "
+                f"Difficult Ratio: >= {self.difficulty_ratio} "
                 f"| Solution Cut: {'?' if status=='PENDIENTE' else self.validate_proof_of_work()[1]} "
                 f"| PrevHash: {self.previous_hash[:8]}..."
                 f"| Hash: {self.hash[:8] if self.hash else 'N/A'}...")

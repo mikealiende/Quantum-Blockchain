@@ -9,8 +9,7 @@ from QAOA_max_cut import solve_max_cut_qaoa, _calculate_cut_size
 
 PROTOCOL_N = 12
 PROTOCOL_P = 0.6
-INITIAL_DIFFICULTY = 36
-
+DIFFICULTY_RATIO = 0.6
 
 def draw_partions(graph,solution_array,num_nodes,found_cut_size ):
     '''Dibujar la particion para hacer pruebas'''
@@ -22,18 +21,22 @@ def draw_partions(graph,solution_array,num_nodes,found_cut_size ):
 
 block = Block(index=1,
             timestamp=time(),
-            transactions=[{"de": "A", "para": "B", "cantidad": 15},{"de": "C", "para": "B", "cantidad": 8} ],
+            transactions=[{"de": "A", "para": "B", "cantidad": 15},{"de": "C", "para": "B", "cantidad": 5} ],
             previous_hash="0"*64,
             mined_by="Miner1",
             protocol_N=PROTOCOL_N,
             protocol_p=PROTOCOL_P,  
-            target_cut_size=INITIAL_DIFFICULTY)
+            difficulty_ratio=DIFFICULTY_RATIO)
 
 print(block)
+
+
 
 #generar el bloque
 graph_challenge = block.generate_graph()
 print(f"\nGrafo Desafío: {graph_challenge.number_of_nodes()} nodos, {graph_challenge.number_of_edges()} aristas.")
+target_cut = block.calculate_target()
+print(f"Target cut: {target_cut}")
 
 
 
@@ -43,10 +46,10 @@ print(f"\nGrafo Desafío: {graph_challenge.number_of_nodes()} nodos, {graph_chal
 #plt.show()
 
 
-partition = solve_max_cut_qaoa(graph=graph_challenge, target_cut=INITIAL_DIFFICULTY, node_id="Node 1")
+partition = solve_max_cut_qaoa(graph=graph_challenge, target_cut=target_cut, node_id="Node 1")
 print(f"Particion: {partition}")
 
-numero_cortes = _calculate_cut_size(graph_challenge, partition)
+numero_cortes = block.validate_PoW(graph_challenge)
 print(f"Numero de cortes calculado: {numero_cortes}")
 
 draw_partions(graph_challenge, partition, PROTOCOL_N, numero_cortes)
