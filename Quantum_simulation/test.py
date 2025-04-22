@@ -4,13 +4,25 @@ from time import time
 import networkx as nx
 import matplotlib.pyplot as plt
 
-PROTOCOL_N = 8
-PROTOCOL_P = 0.5
-INITIAL_DIFFICULTY = 4
+from QAOA_max_cut import solve_max_cut_qaoa, _calculate_cut_size
+
+
+PROTOCOL_N = 12
+PROTOCOL_P = 0.6
+INITIAL_DIFFICULTY = 36
+
+
+def draw_partions(graph,solution_array,num_nodes,found_cut_size ):
+    '''Dibujar la particion para hacer pruebas'''
+    pos = nx.spring_layout(graph, seed=7)
+    colors = ['r' if solution_array[i] == 0 else 'b' for i in range(num_nodes)]
+    nx. draw(graph, pos, with_labels = True, node_color = colors, edge_color = 'gray')
+    plt.title(f"Particiones del Max-Cut. Cortes: {found_cut_size}")
+    plt.show()
 
 block = Block(index=1,
             timestamp=time(),
-            transactions=[{"from": "A", "to": "B", "amount": 15}],
+            transactions=[{"de": "A", "para": "B", "cantidad": 15},{"de": "C", "para": "B", "cantidad": 8} ],
             previous_hash="0"*64,
             mined_by="Miner1",
             protocol_N=PROTOCOL_N,
@@ -23,7 +35,21 @@ print(block)
 graph_challenge = block.generate_graph()
 print(f"\nGrafo Desafío: {graph_challenge.number_of_nodes()} nodos, {graph_challenge.number_of_edges()} aristas.")
 
-pos = nx.spring_layout(graph_challenge, seed=7)
-nx.draw(graph_challenge, pos, with_labels=True, node_color='lightblue', edge_color='gray')
-plt.title("Grafo de Ejemplo para Max-Cut (PennyLane)")
-plt.show()
+
+
+#pos = nx.spring_layout(graph_challenge, seed=7)
+#nx.draw(graph_challenge, pos, with_labels=True, node_color='lightblue', edge_color='gray')
+#plt.title("Grafo de Ejemplo para Max-Cut (PennyLane)")
+#plt.show()
+
+
+partition = solve_max_cut_qaoa(graph=graph_challenge, target_cut=INITIAL_DIFFICULTY, node_id="Node 1")
+print(f"Particion: {partition}")
+
+numero_cortes = _calculate_cut_size(graph_challenge, partition)
+print(f"Numero de cortes calculado: {numero_cortes}")
+
+draw_partions(graph_challenge, partition, PROTOCOL_N, numero_cortes)
+
+
+

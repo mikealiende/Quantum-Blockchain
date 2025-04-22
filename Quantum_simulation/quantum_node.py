@@ -29,6 +29,7 @@ class Node(threading.Thread):
         self.stop_event = stop_event
 
         self.is_minig = False #Flag para evitar minado en pararelo consigo mismo
+        self.minig_stop_event = threading.Event() # Detener un nodo
         self.mining_thread = None #Referencia al hilo minero
 
         self.data_lock = threading.Lock() #Lock para bloquear accesos concurrentes
@@ -148,9 +149,6 @@ class Node(threading.Thread):
         if needs_broadcast:
             self._broadcast("block", block)
 
-
-
-
     def _broadcast(self, msg_type:str, data:any):
         '''Envia mensaje a las colas de todos los peers conocidos'''
         #print(f"Nodo {self.node_id}: transmitiendo {msg_type}...")
@@ -161,9 +159,6 @@ class Node(threading.Thread):
             except queue.Full:
                 print(f"Nodo {self.node_id}: WARN - Cola del peer {peer_id} llena. Mensaje descartado")
     
-
-    #TODO: seguir aqui...
-
     def _start_mining(self):
         '''Inicia el hilo de minado'''  
         with self.data_lock:
@@ -180,6 +175,7 @@ class Node(threading.Thread):
             
             self.is_minig = True
             # Crear hilo de minado
+            self.minig_stop_event.clear()
             self.mining_thread = threading.Thread(target=self._mine_worker, args=(mempool_copy,), daemon=True)
             self.mining_thread.start() #Iniciar hilo de minado            
         
@@ -188,50 +184,66 @@ class Node(threading.Thread):
         '''Detiene el hilo de minado'''
         if self.is_minig:
             print(f"Nodo {self.node_id}: Deteniendo minado")
+            self.minig_stop_event.set() # Señalizar nodo que pare
+            if self.mining_thread and self.mining_thread.is_alive():
+                self.mining_thread.join(timeout=0.5)
+                if self.mining_thread.is_alive():
+                    print(f"Node {self.node_id}: Warning! Hilo de minado no termino bien")
+                    
             self.is_minig = False
             self.mining_thread = None
-    
-    def _mine_worker(self, transactions_to_mine: List[Transaction]):
-        '''Funcion ejecutada por el hilo de minado'''
+            print(f"Node {self.node_id}: Minado detenido")
+            
+    def _mine_worker(self, transactions_to_mine: List[Transaction], stop_event: threading.Event):
+        '''Minado max-cut QAOA'''
         if not transactions_to_mine:
-            print(f"Nodo {self.node_id}: No hay transacciones para minar")
+            print(f"Node {self.node_id} No hay transacciones.")
             self.is_minig = False
             return
-        print(f"Nodo {self.node_id}: Iniciando minado de bloque con {len(transactions_to_mine)} Txs")
-        last_block = self.blockchain.last_block
-        hash_last_block = last_block.calculate_hash()
-        #print(f"Nodo {self.node_id}: Ultimo bloque conocido: {last_block.index} ({hash_last_block[:8]}...)")
-
-        new_block_candidate = Block(
-            index=last_block.index +1,
-            timestamp=time.time(),
-            transactions=transactions_to_mine,
-            previous_hash=hash_last_block,
-            mined_by=self.node_id,
-            nonce=0
-        )
-
-        # --- BUCLE PoW ---
-        target = '0' * self.blockchain.difficulty
-        nonce = 0
-        #print(f"Nodo {self.node_id}. Hash original del bloque candidato {new_block_candidate.index}: {new_block_candidate.calculate_hash()[:8]}...")
-        start_mining_time = time.time()
-        while self.is_minig:
-            new_block_candidate.nonce = nonce
-            hash_result = new_block_candidate.calculate_hash()
-            if hash_result.startswith(target):
-                print(f"Nodo {self.node_id}: BLOQUE MINADO! con nonce {nonce} ({hash_result[:8]}...). Tiempo de minado: {(time.time()-start_mining_time):.2f}")
-                self.incoming_queue.put(("mined_block", new_block_candidate)) #Enviar bloque minado a la cola de entrada
-                self.is_minig = False #Parar el hilo de minado
-                return
-            nonce += 1
-            #Pequeño delay para evitar bucle infinito
-            if nonce % 10000==0:
-                if not self.is_minig or self.stop_event.is_set():
-                    print(f"Nodo {self.node_id}: Minado detenido por evento de parada")
+        
+        with self.data_lock: # Obtener estado actual
+            last_block: Block = self.blockchain.last_block
+            if not last_block or not last_block.calculate_final_hash(): #No hay último bloque
+                print(f"Nodo {self.node_id}: No hay bloques en la cadena")
+                self.is_minig = False
+                return 
+            target_cut = self.blockchain.get_current_difficulty()
+            prev_hash = last_block.hash
+            
+            print(f"Nodo {self.node_id}: Minado bloque {last_block.index+1}. Target cut: {target_cut}")
+            
+            # Creamos bloque candidato
+            candidate_block = Block(
+                index=last_block.index +1,
+                timestamp=time.time(),
+                transactions=transactions_to_mine,
+                previous_hash=prev_hash,
+                mined_by=self.node_id,
+                target_cut_size=target_cut,
+                protocol_N=self.N,
+                protocol_p=self.p
+            )
+            
+            #Generar grafo para puzle
+            try:
+                graph_to_solve = candidate_block.generate_graph()
+                if graph_to_solve.number_of_nodes() == 0 and self.N > 0:
+                    print(f"Nodo {self.node_id}: Error - grafo vacio")
                     self.is_minig = False
                     return
-        print(f"Nodo {self.node_id}: Minado detenido por evento de parada")
+            except Exception as e:
+                print(f"Nodo {self.node_id}: Error generando grafo - {e}")
+                self.is_minig = False
+                return 
+            
+            # Resolvemos Max-Cut
+            start_solver_time = time.time()
+            #TODO script para resolver max-cut.
+            # solution_partition = solve_max_cut
+           
+                
+                
+            
 
     def run(self):
         '''Ejecuta el hilo del nodo, procesando mensajes de la cola de entrada'''
