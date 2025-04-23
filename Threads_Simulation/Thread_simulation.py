@@ -9,7 +9,7 @@ import threading
 
 
 # --- CONFIGURACION ---
-NUM_NODES = 3
+NUM_NODES = 5
 INITIAL_DIFFICULTY = 5
 SIMULATION_TIME = 100  # segundos
 

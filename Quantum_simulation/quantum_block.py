@@ -24,7 +24,7 @@ class Block:
         
         self.index = index
         self.timestamp = timestamp
-        self.transactions = transactions # List of Transaction objects or dictionaries
+        self.transactions: List[Transaction]= transactions # List of Transaction objects or dictionaries
         self.previous_hash = previous_hash
         self.mined_by = mined_by
 
@@ -34,7 +34,7 @@ class Block:
         self.difficulty_ratio = difficulty_ratio
         self.partition_solution = None # 
         self.transaction_hash: str = self._calculate_transaction_hash()
-        self.hash  : Optional[str] = None
+        self.hash : Optional[str] = None
 
     def _calculate_transaction_hash(self) -> str:
         """Calcula un hash determinista del contenido de las transacciones."""
@@ -61,12 +61,13 @@ class Block:
         header_data = {
             "index": self.index,
             "timestamp": self.timestamp,
-            "transactions_hash": self.transactions.calculate_hash(),
+            "transactions_hash": self._calculate_transaction_hash(),
             "previous_hash": self.previous_hash,
             "mined_by": self.mined_by,
             "difficulty_ratio": self.difficulty_ratio,
             "graph_N": self.graph_N,
             "graph_p": self.graph_p,
+            "hash": self.hash,
             "partition_solution": self.partition_solution,
         }
         return header_data
@@ -98,7 +99,7 @@ class Block:
     
     def calculate_target(self) -> int:
         graph = self.generate_graph()
-        target = np.floor(self.difficulty_ratio * graph.number_of_edges())
+        target = np.ceil(self.difficulty_ratio * graph.number_of_edges())
         return target
         
     
@@ -117,12 +118,11 @@ class Block:
                 cut_size += 1
         return cut_size
     
-    def validate_PoW(self, graph: nx.Graph) ->Tuple[bool,int]:
+    def validate_PoW(self, graph:Optional[ nx.Graph]=None) ->Tuple[bool,int]:
         '''
         Valida si la partition_solution del bloque es correcta
         '''
-        print("Ha llegado aqui")
-        if self. partition_solution is None:
+        if self.partition_solution is None:
             print("No hay solucion de particion para validar")
             return False, -1
         if len(self.partition_solution) != self.graph_N:
@@ -139,8 +139,8 @@ class Block:
             target_cut = self.calculate_target()
             
             calculated_cut = Block._calculate_cut_size(current_graph, self.partition_solution)
-            is_valid = calculated_cut >= target_cut
-            return is_valid, calculated_cut
+            if  calculated_cut >= target_cut:
+                return True, calculated_cut
         except ValueError as e:
             print(f"Error en la validacion de PoW: {e}")
             return False, -1
@@ -159,6 +159,6 @@ class Block:
 
         return (f"Block #{self.index} [{status}] "
                 f"Difficult Ratio: >= {self.difficulty_ratio} "
-                f"| Solution Cut: {'?' if status=='PENDIENTE' else self.validate_proof_of_work()[1]} "
+                f"| Solution Cut: {'?' if status=='PENDIENTE' else self.validate_PoW()[1]} "
                 f"| PrevHash: {self.previous_hash[:8]}..."
                 f"| Hash: {self.hash[:8] if self.hash else 'N/A'}...")

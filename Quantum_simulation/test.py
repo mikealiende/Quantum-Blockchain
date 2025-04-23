@@ -9,7 +9,7 @@ from QAOA_max_cut import solve_max_cut_qaoa, _calculate_cut_size
 
 PROTOCOL_N = 12
 PROTOCOL_P = 0.6
-DIFFICULTY_RATIO = 0.6
+DIFFICULTY_RATIO = 0.55
 
 def draw_partions(graph,solution_array,num_nodes,found_cut_size ):
     '''Dibujar la particion para hacer pruebas'''
@@ -37,6 +37,9 @@ graph_challenge = block.generate_graph()
 print(f"\nGrafo Desafío: {graph_challenge.number_of_nodes()} nodos, {graph_challenge.number_of_edges()} aristas.")
 target_cut = block.calculate_target()
 print(f"Target cut: {target_cut}")
+number_of_edges = graph_challenge.number_of_edges()
+target_cut_decimal = number_of_edges * DIFFICULTY_RATIO
+print(f"Target cut decimal: {target_cut_decimal}")
 
 
 
@@ -47,12 +50,16 @@ print(f"Target cut: {target_cut}")
 
 
 partition = solve_max_cut_qaoa(graph=graph_challenge, target_cut=target_cut, node_id="Node 1")
-print(f"Particion: {partition}")
 
-numero_cortes = block.validate_PoW(graph_challenge)
-print(f"Numero de cortes calculado: {numero_cortes}")
+#Esto lo haria el nodo
+block.partition_solution = partition
+block.hash = block.calculate_final_hash()
+# Fin de lo que hace el nodo
 
-draw_partions(graph_challenge, partition, PROTOCOL_N, numero_cortes)
+Validation_result = block.validate_PoW(graph_challenge)
+print(f"Validación del bloque: {Validation_result}")
+print(block)
+draw_partions(graph_challenge, partition, PROTOCOL_N, Validation_result[1])
 
 
 

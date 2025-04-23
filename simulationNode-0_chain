@@ -3,16 +3,18 @@ digraph {
 	rankdir=TB
 	node [color=lightblue shape=record style=filled]
 	fontsize=16 label="Cadena del Nodo: Node-0"
-	"4732475e775267c25a6aa424b9a91a549273bb98528e472fad7a4b55205ca55e" [label="{ 0: Bloque 0 | Hash: 4732475e... | Prev: 0... | Nonce: 0 | Txs: 0 | Minado por: none }"]
-	"4732475e775267c25a6aa424b9a91a549273bb98528e472fad7a4b55205ca55e" [color=lightgreen style=filled]
-	fe85fefb7feee058e20b472bfbd51da5ed656570e4c30956a96bea6f5f6d37fd [label="{ 1: Bloque 1 | Hash: fe85fefb... | Prev: 4732475e... | Nonce: 11315 | Txs: 5 | Minado por: Node-1 }"]
-	"77f7d28d00bc8d581e74041c938497090435b889b6691c93fc206510cf632222" [label="{ 2: Bloque 2 | Hash: 77f7d28d... | Prev: 000006bd... | Nonce: 949840 | Txs: 6 | Minado por: Node-0 }"]
-	a92833ff0a6522f0dd86a1998aa8aeaf11fa804c7c192f7c8758c9458d150cbb [label="{ 3: Bloque 3 | Hash: a92833ff... | Prev: 000006dc... | Nonce: 927828 | Txs: 20 | Minado por: Node-0 }"]
-	"5fa921f5466bb3122d9a73a06629bddd56f0d31ca068103ef90b6db6185420a6" [label="{ 4: Bloque 4 | Hash: 5fa921f5... | Prev: 00000a77... | Nonce: 83312 | Txs: 42 | Minado por: Node-2 }"]
-	b7585185becef990991692ac4951ec55f6ac33a9721aca91f8b0dfcbb69fa9f9 [label="{ 5: Bloque 5 | Hash: b7585185... | Prev: 00000a4b... | Nonce: 287649 | Txs: 49 | Minado por: Node-2 }"]
-	"4732475e775267c25a6aa424b9a91a549273bb98528e472fad7a4b55205ca55e" -> fe85fefb7feee058e20b472bfbd51da5ed656570e4c30956a96bea6f5f6d37fd
-	fe85fefb7feee058e20b472bfbd51da5ed656570e4c30956a96bea6f5f6d37fd -> "77f7d28d00bc8d581e74041c938497090435b889b6691c93fc206510cf632222"
-	"77f7d28d00bc8d581e74041c938497090435b889b6691c93fc206510cf632222" -> a92833ff0a6522f0dd86a1998aa8aeaf11fa804c7c192f7c8758c9458d150cbb
-	a92833ff0a6522f0dd86a1998aa8aeaf11fa804c7c192f7c8758c9458d150cbb -> "5fa921f5466bb3122d9a73a06629bddd56f0d31ca068103ef90b6db6185420a6"
-	"5fa921f5466bb3122d9a73a06629bddd56f0d31ca068103ef90b6db6185420a6" -> b7585185becef990991692ac4951ec55f6ac33a9721aca91f8b0dfcbb69fa9f9
+	"48d9a563df801a64f028ee55153de41c163f1d1b67cbdcc7cf8b3b657d3b5d7f" [label="{ 0: Bloque 0 | Hash: 48d9a563... | Prev: 0... | Nonce: 0 | Txs: 0 | Minado por: none }"]
+	"48d9a563df801a64f028ee55153de41c163f1d1b67cbdcc7cf8b3b657d3b5d7f" [color=lightgreen style=filled]
+	"0f5132ac5ee6648f776819c1946fa889e25320e2c868771d93d587937cf988e3" [label="{ 1: Bloque 1 | Hash: 0f5132ac... | Prev: 48d9a563... | Nonce: 115029 | Txs: 1 | Minado por: Node-4 }"]
+	ac87edcc61a6d3d7d6b12c62f0f7cf35d12363ddb2b24416ad54b362464ed16d [label="{ 2: Bloque 2 | Hash: ac87edcc... | Prev: 00000dd9... | Nonce: 234910 | Txs: 3 | Minado por: Node-3 }"]
+	"65413d90c42e1c4f25d8325977c5d8be1bb95c2ffd05c44ae512361c55582e4f" [label="{ 3: Bloque 3 | Hash: 65413d90... | Prev: 000001bf... | Nonce: 380433 | Txs: 11 | Minado por: Node-3 }"]
+	"5ad672f97fce25833025ffe40d5b5f0cdb3be290d1165d87777c12e96d3369f8" [label="{ 4: Bloque 4 | Hash: 5ad672f9... | Prev: 00000bc9... | Nonce: 90071 | Txs: 32 | Minado por: Node-1 }"]
+	"38d9ed47122228ec9f0fa1945dcde579e1deba60443efb56d698529488747965" [label="{ 5: Bloque 5 | Hash: 38d9ed47... | Prev: 00000a4d... | Nonce: 87471 | Txs: 46 | Minado por: Node-4 }"]
+	"03442a0e712a44545c10a69d43ad9cf6a17a737a1227335e281f4ce943f74dfc" [label="{ 6: Bloque 6 | Hash: 03442a0e... | Prev: 000007f4... | Nonce: 111585 | Txs: 74 | Minado por: Node-2 }"]
+	"48d9a563df801a64f028ee55153de41c163f1d1b67cbdcc7cf8b3b657d3b5d7f" -> "0f5132ac5ee6648f776819c1946fa889e25320e2c868771d93d587937cf988e3"
+	"0f5132ac5ee6648f776819c1946fa889e25320e2c868771d93d587937cf988e3" -> ac87edcc61a6d3d7d6b12c62f0f7cf35d12363ddb2b24416ad54b362464ed16d
+	ac87edcc61a6d3d7d6b12c62f0f7cf35d12363ddb2b24416ad54b362464ed16d -> "65413d90c42e1c4f25d8325977c5d8be1bb95c2ffd05c44ae512361c55582e4f"
+	"65413d90c42e1c4f25d8325977c5d8be1bb95c2ffd05c44ae512361c55582e4f" -> "5ad672f97fce25833025ffe40d5b5f0cdb3be290d1165d87777c12e96d3369f8"
+	"5ad672f97fce25833025ffe40d5b5f0cdb3be290d1165d87777c12e96d3369f8" -> "38d9ed47122228ec9f0fa1945dcde579e1deba60443efb56d698529488747965"
+	"38d9ed47122228ec9f0fa1945dcde579e1deba60443efb56d698529488747965" -> "03442a0e712a44545c10a69d43ad9cf6a17a737a1227335e281f4ce943f74dfc"
 }
