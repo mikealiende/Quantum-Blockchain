@@ -1,12 +1,14 @@
-from Quantum_simulation.quamtum_blockchain import Blockchain
-from Quantum_simulation.quantum_block import Block
+from quantum_blockchain import Blockchain
+from quantum_block import Block
 from transactions import Transaction, Wallet
+from QAOA_max_cut import solve_max_cut_qaoa
+import numpy as np
 from typing import List, Any, Set, Dict # For type hinting
 import time
 import threading
 import queue
 import random
-from graphviz import Digraph
+#from graphviz import Digraph
 import hashlib
 import networkx as nx
 
@@ -105,7 +107,7 @@ class Node(threading.Thread):
         # 4. Validar PoW
         is_pow_valid, calculated_cut = block.validate_PoW(graph_for_validation)
         if not is_pow_valid:
-            print(f"Nodo {self.node_id}: Error en la validacion de PoW del bloque {block.index}. Corte = {calculated_cut}, Targert = {block.target_cut_size}")
+            print(f"Nodo {self.node_id}: Error en la validacion de PoW del bloque {block.index}. Corte = {calculated_cut}, Target = {block.target_cut_size}")
             return
 
         # 5. Validar el hash final
@@ -176,7 +178,7 @@ class Node(threading.Thread):
             self.is_minig = True
             # Crear hilo de minado
             self.minig_stop_event.clear()
-            self.mining_thread = threading.Thread(target=self._mine_worker, args=(mempool_copy,), daemon=True)
+            self.mining_thread = threading.Thread(target=self._mine_worker, args=(mempool_copy,self.stop_event), daemon=True)
             self.mining_thread.start() #Iniciar hilo de minado            
         
     
@@ -207,10 +209,8 @@ class Node(threading.Thread):
                 print(f"Nodo {self.node_id}: No hay bloques en la cadena")
                 self.is_minig = False
                 return 
-            target_cut = self.blockchain.get_current_difficulty()
+            difficulty_ratio = self.blockchain.get_current_difficulty()
             prev_hash = last_block.hash
-            
-            print(f"Nodo {self.node_id}: Minado bloque {last_block.index+1}. Target cut: {target_cut}")
             
             # Creamos bloque candidato
             candidate_block = Block(
@@ -219,11 +219,12 @@ class Node(threading.Thread):
                 transactions=transactions_to_mine,
                 previous_hash=prev_hash,
                 mined_by=self.node_id,
-                target_cut_size=target_cut,
+                difficulty_ratio=difficulty_ratio,
                 protocol_N=self.N,
                 protocol_p=self.p
             )
             
+            print(f"Nodo {self.node_id}: Iniciando minado bloque {candidate_block.index}. Difficulty ratio: {difficulty_ratio}. Numero de transaciones: {len(candidate_block.transactions)}")
             #Generar grafo para puzle
             try:
                 graph_to_solve = candidate_block.generate_graph()
@@ -236,15 +237,33 @@ class Node(threading.Thread):
                 self.is_minig = False
                 return 
             
+            target_cut = np.ceil(graph_to_solve.number_of_edges() * difficulty_ratio)
+            
             # Resolvemos Max-Cut
             start_solver_time = time.time()
-            #TODO script para resolver max-cut.
-            # solution_partition = solve_max_cut
-           
-                
-                
+            solution_partition = solve_max_cut_qaoa(graph=graph_to_solve, target_cut=target_cut, node_id=self.node_id, stop_event=stop_event  )
+            solver_duration = time.time() - start_solver_time
             
-
+            if solution_partition and not stop_event.is_set():
+                candidate_block.partition_solution = solution_partition
+                try:
+                    candidate_block.hash = candidate_block.calculate_final_hash()
+                    # Enviar bloque minado a cola para procesarlo
+                    print(f"Nodo {self.node_id}: Bloque minado {candidate_block.index} Hash: {candidate_block.hash[:8]}. Tiempo de minado: {solver_duration}")
+                    self.incoming_queue.put(("mined_block", candidate_block))
+                except ValueError as e:
+                    print(f"Nodo {self.node_id}: Error al calcular el hash despues de minar")
+                except Exception as e:
+                    print(f"Nodo {self.node_id}: Error inesperado al calcular el hash")
+                    
+            elif stop_event.is_set():
+                print(f"Nodo {self.node_id}: Minado detenido")
+            else: #Solver ha fallado
+                print(f"Nodo {self.node_id}: No se ha encontrado solucion al problema") #Que hacemos, volvemos a empezar?
+            
+            if self.mining_thread == threading.current_thread(): # Si somos el hilo actual
+                self.is_minig = False
+      
     def run(self):
         '''Ejecuta el hilo del nodo, procesando mensajes de la cola de entrada'''
         print(f"Nodo {self.node_id}: Iniciando hilo de procesamiento")
@@ -266,7 +285,7 @@ class Node(threading.Thread):
                 #No hay mensajes en la cola
                 action = random.random()
                 # 2. Posibilidad de crear una transaccion
-                if action < 0.1: #10% de probabilidad por ciclo
+                if action < 0.3: #10% de probabilidad por ciclo
                     if len(self.peers_queues) > 0 :#Hay mas de un nodo conectado)
                         if self.node_list and len (self.node_list) > 1:
                             possible_recipients = [n for n in self.node_list if n.node_id != self.node_id]
@@ -278,7 +297,7 @@ class Node(threading.Thread):
                             else:
                                 print(f"Nodo {self.node_id}: No hay nodos disponibles para enviar Tx")
                 # 3. Posibilidad de minar un bloque
-                elif action < 0.3: #20% de probabilidad por ciclo
+                elif action < 0.5: #20% de probabilidad por ciclo
                     with self.data_lock: #Necesario para chequear mempool
                         can_mine =  not self.is_minig and len(self.mempool) > 0
                     if can_mine:
@@ -312,6 +331,7 @@ class Node(threading.Thread):
             print(f"Nodo {self.node_id}: ERROR Tx {tx_hash[:8]}...")
 
     # --- UTILITIES ---
+    '''
     def visualize_chain(self, filename: str = None, max_blocks:int = None):
         
         if filename is None:
@@ -372,3 +392,5 @@ class Node(threading.Thread):
         except Exception as e:
             print(f"\n  Error al generar Graphviz para {self.node_id}: {e}")
             print("  Verifica que Graphviz esté instalado y en el PATH.")
+            
+            '''

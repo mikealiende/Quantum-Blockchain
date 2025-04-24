@@ -30,8 +30,6 @@ block = Block(index=1,
 
 print(block)
 
-
-
 #generar el bloque
 graph_challenge = block.generate_graph()
 print(f"\nGrafo Desafío: {graph_challenge.number_of_nodes()} nodos, {graph_challenge.number_of_edges()} aristas.")

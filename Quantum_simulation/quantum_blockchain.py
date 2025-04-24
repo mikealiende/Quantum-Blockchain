@@ -2,7 +2,7 @@ import hashlib
 import json
 from time import time
 from typing import List, Any 
-from Quantum_simulation.quantum_block import Block
+from quantum_block import Block
 import networkx as nx
 import threading
 
@@ -10,13 +10,13 @@ class Blockchain:
     def __init__(self, 
                  protocol_N: int,
                  protocol_p: float,
-                 initial_target_cut_size: int = 4): # Dificultad inicial
+                 initial_difficulty_ratio: float = 0.55): # Dificultad inicial
         
         self.chain: List[Block] = []
         self.pending_transactions: List[Any] = [] # Mempool
         self.N: int = protocol_N # Numero de nodos
         self.p: float = protocol_p 
-        self.target_cut_size: int = initial_target_cut_size 
+        self.initial_difficulty_ratio: float = initial_difficulty_ratio 
 
         self.lock = threading.Lock() 
     
@@ -30,7 +30,8 @@ class Blockchain:
             timestamp=time(),
             transactions=[],
             previous_hash="0" * 64, # Primer bloque no tiene hash previo
-            target_cut_size=self.target_cut_size,
+            mined_by="None",
+            difficulty_ratio=self.initial_difficulty_ratio,
             protocol_N=self.N,
             protocol_p=self.p
         )
@@ -51,7 +52,7 @@ class Blockchain:
         return self.chain[-1]
     
     def get_current_difficulty(self) -> int:
-        return self.target_cut_size
+        return self.initial_difficulty_ratio
 
 
 

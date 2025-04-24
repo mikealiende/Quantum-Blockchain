@@ -34,7 +34,7 @@ def _calculate_cut_size(graph: nx.Graph, partition: List[int]) -> int:
 def solve_max_cut_qaoa(
     graph: nx.Graph,
     target_cut: int,
-    #stop_event: threading.Event,
+    stop_event: threading.Event,
     node_id: str = "QAOA_solver", # Para logs
     n_layer: int = 2, # Capas QAOA
     optim_steps: int = 80, # Pasos optimizador clásico
@@ -111,13 +111,10 @@ def solve_max_cut_qaoa(
     print(f"Nodo {node_id}: Iniciando optimización...")
     for i in range (optim_steps):
         
-        ''' 
         if stop_event.is_set(): # Comprobamos si tenemos que deternos antes de empezar la optimizacion
             print(f"Nodo {node_id}: Optimizacion detenida")
             return None
             
-        '''
-    
         try:
             params = optimizer.step(cost_function, params)
         except Exception as e:
@@ -143,7 +140,7 @@ def solve_max_cut_qaoa(
                     best_found_cut = current_cut
                     best_found_partition = current_partition
                     
-                print(f"Iteracion {i+1}. Mejor corte hasta ahora: {best_found_cut}")
+                #print(f"Iteracion {i+1}. Mejor corte hasta ahora: {best_found_cut}")
                 
                 if current_cut >= target_cut:
                     duration = time.time() - start_time

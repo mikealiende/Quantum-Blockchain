@@ -1,17 +1,19 @@
-from Quantum_simulation.quamtum_blockchain import Blockchain
-from Quantum_simulation.quantum_block import Block
+from quantum_blockchain import Blockchain
+from quantum_block import Block
 from transactions import Transaction
 from typing import List, Any, Set # For type hinting
 import time
-from Quantum_simulation.quantum_node import Node
+from quantum_node import Node
 import copy
 import threading
 
 
 # --- CONFIGURACION ---
-NUM_NODES = 3
-INITIAL_DIFFICULTY = 5
-SIMULATION_TIME = 100  # seconds
+NUM_NODES = 2
+INITIAL_DIFFICULTY_RATIO = 0.55
+PROTOCOL_N = 7
+PROTOCOL_P = 0.3
+SIMULATION_TIME = 10  # seconds
 
 # --Inicializacion
 print("Iniciando la simulacion...")
@@ -20,17 +22,18 @@ threads = []
 stop_event = threading.Event() # Evento para detener los hilos
 
 # --Crear instancia de Bockchain
-initial_blockchain_template = Blockchain(difficulty=INITIAL_DIFFICULTY)
+initial_blockchain_template = Blockchain(protocol_N=PROTOCOL_N,
+                                         protocol_p=PROTOCOL_P, 
+                                         initial_difficulty_ratio=INITIAL_DIFFICULTY_RATIO)
 
 # 1. Crear nodos sin inicializar
 for i in range(NUM_NODES):
     node_id = f"Node-{i}"
-    node_block_chain_copy = copy.deepcopy(initial_blockchain_template)
-    node = Node(
-        node_id=node_id, 
-        blockchain_instance=node_block_chain_copy, 
-        node_list= nodes,
-        stop_event=stop_event)
+    #node_block_chain_copy = copy.deepcopy(initial_blockchain_template)
+    node = Node(node_id=node_id,
+                blockchain_instance=initial_blockchain_template, 
+                node_list= nodes,
+                stop_event=stop_event)
     nodes.append(node)
 
 # 2. Conectar los nodos entre si
@@ -93,8 +96,8 @@ finally:
         for block in node.blockchain.chain:
             print(f" - Bloque {block.index}: {block.calculate_hash()[:8]}... Tx: {len(block.transactions)}, Prevous: {block.previous_hash[:8]}..., Minado por {block.mined_by}")'''
 
-    node_to_print = nodes[0]
-    node_to_print.visualize_chain()
+    #node_to_print = nodes[0]
+    #node_to_print.visualize_chain()
 
 
     # Validar la cadena de bloques
