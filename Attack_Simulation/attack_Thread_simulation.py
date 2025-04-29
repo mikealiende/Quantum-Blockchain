@@ -1,17 +1,25 @@
-from blockchain import Blockchain
-from block import Block
-from transactions import Transaction
+from attack_blockchain import Blockchain
+from attack_block import Block
+from attack_transactions import Transaction
 from typing import List, Any, Set # For type hinting
 import time
-from node import Node
+from attack_node import Node
 import copy
 import threading
 
 
 # --- CONFIGURACION ---
-NUM_NODES = 5
-INITIAL_DIFFICULTY = 5
-SIMULATION_TIME = 500  # segundos
+NUM_NODES = 4
+INITIAL_DIFFICULTY = 4
+SIMULATION_TIME = 20  # segundos
+
+# --- CONFIGURACION DEL ATAQUE ---
+ATTACKER_NODE_ID = "Node-0"
+ATTACKER_SPEED_MULTIPLIER = 150 # Veces mas rapido que va el atacante
+
+NORMAL_NODE_SPEED_MULTIPLIER = 0.2
+
+
 
 # --Inicializacion
 print("Iniciando la simulacion...")
@@ -26,11 +34,13 @@ initial_blockchain_template = Blockchain(difficulty=INITIAL_DIFFICULTY)
 for i in range(NUM_NODES):
     node_id = f"Node-{i}"
     node_block_chain_copy = copy.deepcopy(initial_blockchain_template)
+    speed = ATTACKER_SPEED_MULTIPLIER if node_id == ATTACKER_NODE_ID else NORMAL_NODE_SPEED_MULTIPLIER
     node = Node(
         node_id=node_id, 
         blockchain_instance=node_block_chain_copy, 
         node_list= nodes,
-        stop_event=stop_event)
+        stop_event=stop_event,
+        mining_speed=speed)
     nodes.append(node)
 
 # 2. Conectar los nodos entre si

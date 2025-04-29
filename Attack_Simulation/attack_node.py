@@ -1,7 +1,7 @@
 import os
-from blockchain import Blockchain
-from block import Block
-from transactions import Transaction, Wallet
+from attack_blockchain import Blockchain
+from attack_block import Block
+from attack_transactions import Transaction, Wallet
 from typing import List, Any, Set, Dict # For type hinting
 import time
 import threading
@@ -14,7 +14,7 @@ os.environ["PATH"] += os.pathsep + graphviz_bin
 from graphviz import Digraph
 
 class Node(threading.Thread):
-    def __init__(self, node_id:str, blockchain_instance = Blockchain, node_list: list = None, stop_event: threading.Event = None):
+    def __init__(self, node_id:str, blockchain_instance = Blockchain, node_list: list = None, stop_event: threading.Event = None, mining_speed : float = 1.0):
         threading.Thread.__init__(self,daemon=True) # Llamar al init del Thread, daemon=True para que termine si el principal termina
         self.node_id = node_id
         self.blockchain = blockchain_instance
@@ -35,6 +35,7 @@ class Node(threading.Thread):
         self.mining_thread = None #Referencia al hilo minero
 
         self.data_lock = threading.Lock() #Lock para bloquear accesos concurrentes
+        self.mining_speed = mining_speed
 
 
         print(f"Nodo {self.node_id} creado. Dirección Wallet: {self.wallet.get_address()[:10]}... ")
@@ -176,7 +177,10 @@ class Node(threading.Thread):
         # --- BUCLE PoW ---
         target = '0' * self.blockchain.difficulty
         nonce = 0
-        #print(f"Nodo {self.node_id}. Hash original del bloque candidato {new_block_candidate.index}: {new_block_candidate.calculate_hash()[:8]}...")
+        BASE_CHECK_INTERVAL = 10000 # Numero de nonces que se prueban antes de una pausa. 
+        check_interval = int(BASE_CHECK_INTERVAL * self.mining_speed)
+        if check_interval <= 0: check_interval = 1 #Para eviar problemas.
+        pause_duration = 1   
         start_mining_time = time.time()
         while self.is_minig:
             new_block_candidate.nonce = nonce
@@ -188,11 +192,13 @@ class Node(threading.Thread):
                 return
             nonce += 1
             #Pequeño delay para evitar bucle infinito
-            if nonce % 10000==0:
+            if nonce % check_interval==0:
                 if not self.is_minig or self.stop_event.is_set():
                     print(f"Nodo {self.node_id}: Minado detenido por evento de parada")
                     self.is_minig = False
                     return
+                time.sleep(pause_duration)
+             
         print(f"Nodo {self.node_id}: Minado detenido por evento de parada")
 
     def run(self):
