@@ -32,7 +32,7 @@ class Block:
         self.graph_N = protocol_N
         self.graph_p = protocol_p
         self.difficulty_ratio = difficulty_ratio
-        self.partition_solution = None # 
+        self.partition_solution: List = None # 
         self.transaction_hash: str = self._calculate_transaction_hash()
         self.hash : Optional[str] = None
 
@@ -60,14 +60,13 @@ class Block:
         
         header_data = {
             "index": self.index,
-            "timestamp": self.timestamp,
+            #"timestamp": self.timestamp,
             "transactions_hash": self._calculate_transaction_hash(),
             "previous_hash": self.previous_hash,
             "mined_by": self.mined_by,
             "difficulty_ratio": self.difficulty_ratio,
             "graph_N": self.graph_N,
             "graph_p": self.graph_p,
-            "hash": self.hash,
             "partition_solution": self.partition_solution,
         }
         return header_data
@@ -76,7 +75,8 @@ class Block:
         '''Calcula el hash final del bloque, incluyendo la solucion de particion'''
         header_data = self.get_header_data_for_hash()
         block_string = json.dumps(header_data, sort_keys=True).encode()
-        return hashlib.sha256(block_string).hexdigest()
+        hash_calculated = hashlib.sha256(block_string).hexdigest()
+        return  hash_calculated
     
     def generate_graph(self):
         '''
@@ -97,9 +97,9 @@ class Block:
                     G.add_edge(i, j)
         return G
     
-    def calculate_target(self) -> int:
-        graph = self.generate_graph()
-        target = np.ceil(self.difficulty_ratio * graph.number_of_edges())
+    def calculate_target(self,graph:Optional[ nx.Graph]=None) -> int:
+        current_graph =  graph if graph is not None else self.generate_graph()
+        target = np.ceil(self.difficulty_ratio * current_graph.number_of_edges())
         return target
         
     

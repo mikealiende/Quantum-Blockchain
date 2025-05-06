@@ -3,6 +3,7 @@ import json
 from time import time
 from typing import List, Any 
 from quantum_block import Block
+from transactions import Transaction
 import networkx as nx
 import threading
 
@@ -97,12 +98,32 @@ class Blockchain:
 
             # Limpiar mempool
             try:
-                block_tx_ids = {tx.get("id", str(tx)) for tx in block.transactions}
-                self.pending_transactions = [tx for tx in self.pending_transactions if tx.get("id", str(tx)) not in block_tx_ids]
-
-            except Exception as e:
-                print(f"Error al limpiar el mempool: {e}")
+                hashes_in_block = {tx_in_block.calculate_hash() for tx_in_block in block.transactions}
+                new_pending_transactions = []
+                for pending_tx in self.pending_transactions:
+                    
+                    '''if not isinstance(pending_tx, Transaction):
+                        # Manejar caso donde pending_transactions podría tener tipos mixtos (si es posible)
+                        print(f"Warning: pending_transactions contiene un elemento no-Transaction: {type(pending_tx)}")
+                        # Podrías intentar obtener un ID o hash de otra manera si es un dict,
+                        # o simplemente mantenerlo si no puedes procesarlo.
+                        # Por ahora, lo mantenemos si no es un objeto Transaction.
+                        new_pending_transactions.append(pending_tx)
+                        continue'''
+                    # Si es un objeto Transaction, calcular su hash
+                    if pending_tx.calculate_hash() not in hashes_in_block:
+                        new_pending_transactions.append(pending_tx)
+                self.pending_transactions = new_pending_transactions
+                print(f"[*] Blockchain: Mempool/Pending Transactions limpiado. Quedan {len(self.pending_transactions)} Txs.")
+            except AttributeError as ae:
+                print(f"Error al limpiar el mempool (AttributeError): {ae}. "
+                      f"Asegúrate de que todas las transacciones sean objetos Transaction con calculate_hash().")
+                
                 return False
+            except Exception as e:
+                print(f"Error inesperado al limpiar el mempool: {e}")
+                return False
+            
             
             return True
 

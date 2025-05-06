@@ -11,8 +11,8 @@ import threading
 # --- CONFIGURACION ---
 NUM_NODES = 2
 INITIAL_DIFFICULTY_RATIO = 0.55
-PROTOCOL_N = 7
-PROTOCOL_P = 0.3
+PROTOCOL_N = 11
+PROTOCOL_P = 0.5
 SIMULATION_TIME = 10  # seconds
 
 # --Inicializacion
@@ -27,6 +27,9 @@ initial_blockchain_template = Blockchain(protocol_N=PROTOCOL_N,
                                          initial_difficulty_ratio=INITIAL_DIFFICULTY_RATIO)
 
 # 1. Crear nodos sin inicializar
+
+initial_block_hash = initial_blockchain_template.last_block.calculate_final_hash()
+print(f"GENERAL: Initial block hash: {initial_block_hash[:8]}")
 for i in range(NUM_NODES):
     node_id = f"Node-{i}"
     #node_block_chain_copy = copy.deepcopy(initial_blockchain_template)
@@ -74,7 +77,8 @@ finally:
     max_len = 0
     for node in nodes:
         chain_len = len(node.blockchain.chain)
-        last_hash = node.blockchain.last_block.calculate_hash() if chain_len > 0 else "N/A"
+        lastblock :Block = node.blockchain.last_block
+        last_hash = lastblock.calculate_final_hash() if chain_len > 0 else "N/A"
         print(f"Nodo {node.node_id}: Bloques={chain_len}, hash={last_hash[:8]}..., mempool= {len(node.mempool)}")
 
         max_len = max(max_len, chain_len)

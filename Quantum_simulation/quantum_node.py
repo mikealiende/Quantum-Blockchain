@@ -97,9 +97,10 @@ class Node(threading.Thread):
             print(f"  Esperado: {last_local_block.calculate_final_hash()[:8]}... - Recibido: {block.previous_hash[:8]}...")
             return
         
-        # 3. Generar grafo
+        # 3. Generar grafo y calcular corte objetivo
         try:
             graph_for_validation = block.generate_graph()
+            target_cut_size = block.calculate_target(graph_for_validation)
         except Exception as e:
             print(f"Nodo {self.node_id}: Error al generar grafo para validar bloque: {e}")
             return
@@ -107,14 +108,16 @@ class Node(threading.Thread):
         # 4. Validar PoW
         is_pow_valid, calculated_cut = block.validate_PoW(graph_for_validation)
         if not is_pow_valid:
-            print(f"Nodo {self.node_id}: Error en la validacion de PoW del bloque {block.index}. Corte = {calculated_cut}, Target = {block.target_cut_size}")
+            print(f"Nodo {self.node_id}: Error en la validacion de PoW del bloque {block.index}. Corte = {calculated_cut}, Target = {target_cut_size}")
             return
 
         # 5. Validar el hash final
         try:
             expected_hash = block.calculate_final_hash()
+            print(f"Nodo {self.node_id}: particion: {block.partition_solution}")
             if block.hash != expected_hash:
                 print(f"Nodo {self.node_id}: Bloque {block.index} no valido. Hash final no coincide")
+                print(f"Nodo {self.node_id}: hash del bloque {block.hash[:8]}. hash esperado: {expected_hash[:8]}")
                 return
         except ValueError as e:
             print(f"Nodo {self.node_id}: Error al calcular el hash final del bloque {block.index}: {e}")
@@ -124,7 +127,7 @@ class Node(threading.Thread):
             return
         
         # --- Bloque valido ---
-        print(f"Nodo {self.node_id}: Bloque {block.index} valido. Hash: {block.hash[:8]}... - Corte: {calculated_cut} - Target: {block.target_cut_size}")
+        print(f"Nodo {self.node_id}: Bloque {block.index} valido. Hash: {block.hash[:8]}... - Corte: {calculated_cut} - Target: {target_cut_size}")
 
         # --- Modifiacion estado (con lock) ---
         with self.data_lock:
@@ -210,7 +213,7 @@ class Node(threading.Thread):
                 self.is_minig = False
                 return 
             difficulty_ratio = self.blockchain.get_current_difficulty()
-            prev_hash = last_block.hash
+            prev_hash = last_block.calculate_final_hash()
             
             # Creamos bloque candidato
             candidate_block = Block(
@@ -224,8 +227,10 @@ class Node(threading.Thread):
                 protocol_p=self.p
             )
             
-            print(f"Nodo {self.node_id}: Iniciando minado bloque {candidate_block.index}. Difficulty ratio: {difficulty_ratio}. Numero de transaciones: {len(candidate_block.transactions)}")
+            print(f"Nodo {self.node_id}: Iniciando minado bloque {candidate_block.index}. Difficulty ratio: {difficulty_ratio}. Numero de transaciones: {len(candidate_block.transactions)}. Hash bloque anterior: {candidate_block.previous_hash[:8]}")
             #Generar grafo para puzle
+            
+            
             try:
                 graph_to_solve = candidate_block.generate_graph()
                 if graph_to_solve.number_of_nodes() == 0 and self.N > 0:
@@ -243,18 +248,21 @@ class Node(threading.Thread):
             start_solver_time = time.time()
             solution_partition = solve_max_cut_qaoa(graph=graph_to_solve, target_cut=target_cut, node_id=self.node_id, stop_event=stop_event  )
             solver_duration = time.time() - start_solver_time
-            
+       
+            print(f"Nodo {self.node_id}: Solucion: {solution_partition}")
             if solution_partition and not stop_event.is_set():
-                candidate_block.partition_solution = solution_partition
+                
+                candidate_block.partition_solution = solution_partition                
+                
                 try:
                     candidate_block.hash = candidate_block.calculate_final_hash()
                     # Enviar bloque minado a cola para procesarlo
-                    print(f"Nodo {self.node_id}: Bloque minado {candidate_block.index} Hash: {candidate_block.hash[:8]}. Tiempo de minado: {solver_duration}")
+                    print(f"Nodo {self.node_id}: Bloque minado {candidate_block.index} Hash: {candidate_block.hash[:8]}. Tiempo de minado: {solver_duration:.2f}")
                     self.incoming_queue.put(("mined_block", candidate_block))
                 except ValueError as e:
-                    print(f"Nodo {self.node_id}: Error al calcular el hash despues de minar")
+                    print(f"Nodo {self.node_id}: Error al calcular el hash despues de minar: {e}")
                 except Exception as e:
-                    print(f"Nodo {self.node_id}: Error inesperado al calcular el hash")
+                    print(f"Nodo {self.node_id}: Error inesperado al calcular el hash después de minar: {e}")
                     
             elif stop_event.is_set():
                 print(f"Nodo {self.node_id}: Minado detenido")
@@ -267,6 +275,9 @@ class Node(threading.Thread):
     def run(self):
         '''Ejecuta el hilo del nodo, procesando mensajes de la cola de entrada'''
         print(f"Nodo {self.node_id}: Iniciando hilo de procesamiento")
+        
+        lastblock:Block = self.blockchain.last_block
+        print(f"Last block initial {lastblock.calculate_final_hash()[:8]}")
         while not self.stop_event.is_set():
             try:
                 # 1. Procesar mensajes entrantes (no bloqueante)
