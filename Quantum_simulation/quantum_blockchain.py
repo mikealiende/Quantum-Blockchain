@@ -93,28 +93,17 @@ class Blockchain:
                 print(f"Error al calcular el hash del bloque {block.index}")
                 return False
             
-            print(f"Bloque {block.index} con hash: {block.hash[:8]}... añadido a la cadena")
+            #print(f"Bloque {block.index} con hash: {block.hash[:8]}... añadido a la cadena")
             self.chain.append(block)
 
             # Limpiar mempool
             try:
                 hashes_in_block = {tx_in_block.calculate_hash() for tx_in_block in block.transactions}
                 new_pending_transactions = []
-                for pending_tx in self.pending_transactions:
-                    
-                    '''if not isinstance(pending_tx, Transaction):
-                        # Manejar caso donde pending_transactions podría tener tipos mixtos (si es posible)
-                        print(f"Warning: pending_transactions contiene un elemento no-Transaction: {type(pending_tx)}")
-                        # Podrías intentar obtener un ID o hash de otra manera si es un dict,
-                        # o simplemente mantenerlo si no puedes procesarlo.
-                        # Por ahora, lo mantenemos si no es un objeto Transaction.
-                        new_pending_transactions.append(pending_tx)
-                        continue'''
-                    # Si es un objeto Transaction, calcular su hash
+                for pending_tx in self.pending_transactions:                    
                     if pending_tx.calculate_hash() not in hashes_in_block:
                         new_pending_transactions.append(pending_tx)
                 self.pending_transactions = new_pending_transactions
-                print(f"[*] Blockchain: Mempool/Pending Transactions limpiado. Quedan {len(self.pending_transactions)} Txs.")
             except AttributeError as ae:
                 print(f"Error al limpiar el mempool (AttributeError): {ae}. "
                       f"Asegúrate de que todas las transacciones sean objetos Transaction con calculate_hash().")

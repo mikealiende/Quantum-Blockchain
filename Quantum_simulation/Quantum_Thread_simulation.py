@@ -10,10 +10,10 @@ import threading
 
 # --- CONFIGURACION ---
 NUM_NODES = 2
-INITIAL_DIFFICULTY_RATIO = 0.55
-PROTOCOL_N = 11
+INITIAL_DIFFICULTY_RATIO = 0.60
+PROTOCOL_N = 20
 PROTOCOL_P = 0.5
-SIMULATION_TIME = 10  # seconds
+SIMULATION_TIME = 15  # seconds
 
 # --Inicializacion
 print("Iniciando la simulacion...")

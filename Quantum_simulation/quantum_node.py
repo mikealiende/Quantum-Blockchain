@@ -76,9 +76,10 @@ class Node(threading.Thread):
         '''Maneja bloques entrantes. Validacion max-cut'''
         # 1. Comporbar si conecemos el bloque
         block_hash  = block.hash
+        print(f"Nodo {self.node_id}: Recibiendo bloque {block.index} con hash {block_hash[:8]}... Minado por {block.mined_by}")
         with self.data_lock:
             if block_hash in self.known_block_hashes:
-                print(f"Nodo {self.node_id}: Blque {block_hash[:8]} ya conocido")
+                print(f"Nodo {self.node_id}: Bloque {block_hash[:8]} ya conocido")
                 return
             self.known_block_hashes.add(block_hash)
             last_local_block = self.blockchain.last_block
@@ -136,7 +137,7 @@ class Node(threading.Thread):
             if block.previous_hash == current_last_block.calculate_final_hash():
                 # Anadir a la blockchain
                 if self.blockchain.add_block(block):
-                    print(f"Nodo {self.node_id}: Añadiendo bloque {block.index} a la cadena local")
+                    print(f"Nodo {self.node_id}: Añadiendo bloque {block.index}  con hash: {block.hash[:8]}a la cadena local. Minado por {block.mined_by}")
                     block_tx_ids = { hashlib.sha256(str(tx).encode()).hexdigest() for tx in block.transactions }
                     self.mempool = {tx for tx in self.mempool if hashlib.sha256(str(tx).encode()).hexdigest() not in block_tx_ids}
 
@@ -277,7 +278,6 @@ class Node(threading.Thread):
         print(f"Nodo {self.node_id}: Iniciando hilo de procesamiento")
         
         lastblock:Block = self.blockchain.last_block
-        print(f"Last block initial {lastblock.calculate_final_hash()[:8]}")
         while not self.stop_event.is_set():
             try:
                 # 1. Procesar mensajes entrantes (no bloqueante)
@@ -295,8 +295,9 @@ class Node(threading.Thread):
             except queue.Empty:
                 #No hay mensajes en la cola
                 action = random.random()
+                
                 # 2. Posibilidad de crear una transaccion
-                if action < 0.3: #10% de probabilidad por ciclo
+                if action < 0.6: 
                     if len(self.peers_queues) > 0 :#Hay mas de un nodo conectado)
                         if self.node_list and len (self.node_list) > 1:
                             possible_recipients = [n for n in self.node_list if n.node_id != self.node_id]
@@ -308,13 +309,13 @@ class Node(threading.Thread):
                             else:
                                 print(f"Nodo {self.node_id}: No hay nodos disponibles para enviar Tx")
                 # 3. Posibilidad de minar un bloque
-                elif action < 0.5: #20% de probabilidad por ciclo
+                if action < 0.2:
                     with self.data_lock: #Necesario para chequear mempool
                         can_mine =  not self.is_minig and len(self.mempool) > 0
                     if can_mine:
                         self._start_mining()
                 #Pausa para evitar consumo excesivo de CPU
-                time.sleep(random.uniform(0.1, 0.5)) #Pausa aleatoria entre 0.1 y 0.5 segundos
+                time.sleep(random.uniform(0.5, 1.0)) #Pausa aleatoria entre 0.1 y 0.5 segundos
         print(f"Nodo {self.node_id}: Hilo detenido")        
     
     def _create_and_broadcast_transaction(self, recipient_address:str, amount:float):
