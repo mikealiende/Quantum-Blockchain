@@ -152,6 +152,10 @@ def solve_max_cut_qaoa(
                 print(f"Nodo {node_id}: Error QuantumFunctionError - {e}")
             except Exception as e:
                  print(f"Nodo {node_id}: Error inesperado - {e}")
+                 
+            time.sleep(0.1)
+            
+            
     
     # --- 6. Si el bucle termina sin exito ---
     duration = time.time() -start_time

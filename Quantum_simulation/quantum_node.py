@@ -31,7 +31,9 @@ class Node(threading.Thread):
         self.stop_event = stop_event
 
         self.is_minig = False #Flag para evitar minado en pararelo consigo mismo
+        self.mining_task_active = False #Indica si una tarea de minado está en marcha
         self.minig_stop_event = threading.Event() # Detener un nodo
+        self.mining_pause_event = threading.Event() #Pausa temporalmente el minado
         self.mining_thread = None #Referencia al hilo minero
 
         self.data_lock = threading.Lock() #Lock para bloquear accesos concurrentes
@@ -232,46 +234,48 @@ class Node(threading.Thread):
             #Generar grafo para puzle
             
             
+        try:
+            graph_to_solve = candidate_block.generate_graph()
+            if graph_to_solve.number_of_nodes() == 0 and self.N > 0:
+                print(f"Nodo {self.node_id}: Error - grafo vacio")
+                self.is_minig = False
+                return
+        except Exception as e:
+            print(f"Nodo {self.node_id}: Error generando grafo - {e}")
+            self.is_minig = False
+            return 
+        
+        target_cut = np.ceil(graph_to_solve.number_of_edges() * difficulty_ratio)
+        
+        # Resolvemos Max-Cut
+        start_solver_time = time.time()
+        solution_partition = solve_max_cut_qaoa(graph=graph_to_solve, target_cut=target_cut, node_id=self.node_id, stop_event=stop_event)
+        solver_duration = time.time() - start_solver_time
+        
+        
+    
+        print(f"Nodo {self.node_id}: Solucion: {solution_partition}")
+        if solution_partition and not stop_event.is_set():
+            
+            candidate_block.partition_solution = solution_partition                
+            
             try:
-                graph_to_solve = candidate_block.generate_graph()
-                if graph_to_solve.number_of_nodes() == 0 and self.N > 0:
-                    print(f"Nodo {self.node_id}: Error - grafo vacio")
-                    self.is_minig = False
-                    return
+                candidate_block.hash = candidate_block.calculate_final_hash()
+                # Enviar bloque minado a cola para procesarlo
+                print(f"Nodo {self.node_id}: Bloque minado {candidate_block.index} Hash: {candidate_block.hash[:8]}. Tiempo de minado: {solver_duration:.2f}")
+                self.incoming_queue.put(("mined_block", candidate_block))
+            except ValueError as e:
+                print(f"Nodo {self.node_id}: Error al calcular el hash despues de minar: {e}")
             except Exception as e:
-                print(f"Nodo {self.node_id}: Error generando grafo - {e}")
-                self.is_minig = False
-                return 
-            
-            target_cut = np.ceil(graph_to_solve.number_of_edges() * difficulty_ratio)
-            
-            # Resolvemos Max-Cut
-            start_solver_time = time.time()
-            solution_partition = solve_max_cut_qaoa(graph=graph_to_solve, target_cut=target_cut, node_id=self.node_id, stop_event=stop_event  )
-            solver_duration = time.time() - start_solver_time
-       
-            print(f"Nodo {self.node_id}: Solucion: {solution_partition}")
-            if solution_partition and not stop_event.is_set():
+                print(f"Nodo {self.node_id}: Error inesperado al calcular el hash después de minar: {e}")
                 
-                candidate_block.partition_solution = solution_partition                
-                
-                try:
-                    candidate_block.hash = candidate_block.calculate_final_hash()
-                    # Enviar bloque minado a cola para procesarlo
-                    print(f"Nodo {self.node_id}: Bloque minado {candidate_block.index} Hash: {candidate_block.hash[:8]}. Tiempo de minado: {solver_duration:.2f}")
-                    self.incoming_queue.put(("mined_block", candidate_block))
-                except ValueError as e:
-                    print(f"Nodo {self.node_id}: Error al calcular el hash despues de minar: {e}")
-                except Exception as e:
-                    print(f"Nodo {self.node_id}: Error inesperado al calcular el hash después de minar: {e}")
-                    
-            elif stop_event.is_set():
-                print(f"Nodo {self.node_id}: Minado detenido")
-            else: #Solver ha fallado
-                print(f"Nodo {self.node_id}: No se ha encontrado solucion al problema") #Que hacemos, volvemos a empezar?
-            
-            if self.mining_thread == threading.current_thread(): # Si somos el hilo actual
-                self.is_minig = False
+        elif stop_event.is_set():
+            print(f"Nodo {self.node_id}: Minado detenido")
+        else: #Solver ha fallado
+            print(f"Nodo {self.node_id}: No se ha encontrado solucion al problema") #Que hacemos, volvemos a empezar?
+        
+        if self.mining_thread == threading.current_thread(): # Si somos el hilo actual
+            self.is_minig = False
       
     def run(self):
         '''Ejecuta el hilo del nodo, procesando mensajes de la cola de entrada'''
