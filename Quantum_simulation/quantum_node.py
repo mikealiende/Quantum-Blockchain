@@ -30,10 +30,10 @@ class Node(threading.Thread):
         self.node_list = node_list
         self.stop_event = stop_event
 
-        self.is_minig = False #Flag para evitar minado en pararelo consigo mismo
-        self.mining_task_active = False #Indica si una tarea de minado está en marcha
+        self.is_minig = False # Flag para evitar minado en pararelo consigo mismo
+        self.mining_thread_active = False #Indica si una tarea de minado está en marcha
         self.minig_stop_event = threading.Event() # Detener un nodo
-        self.mining_pause_event = threading.Event() #Pausa temporalmente el minado
+        self.is_validating_block = False # Indica si _handle_block esta ocupado
         self.mining_thread = None #Referencia al hilo minero
 
         self.data_lock = threading.Lock() #Lock para bloquear accesos concurrentes
@@ -77,11 +77,15 @@ class Node(threading.Thread):
     def _handle_block(self, block: Block):
         '''Maneja bloques entrantes. Validacion max-cut'''
         # 1. Comporbar si conecemos el bloque
+        
+        self.is_validating_block = True
+        
         block_hash  = block.hash
         print(f"Nodo {self.node_id}: Recibiendo bloque {block.index} con hash {block_hash[:8]}... Minado por {block.mined_by}")
         with self.data_lock:
             if block_hash in self.known_block_hashes:
-                print(f"Nodo {self.node_id}: Bloque {block_hash[:8]} ya conocido")
+                print(f"Nodo {self.node_id}: Bloque {block.index} con hash: {block_hash[:8]} ya conocido")
+                self.is_validating_block = False
                 return
             self.known_block_hashes.add(block_hash)
             last_local_block = self.blockchain.last_block
@@ -153,7 +157,8 @@ class Node(threading.Thread):
             else:
                 print(f"Nodo {self.node_id}: Error al añadir bloque {block.index} a la cadena local. Hash previo no coincide")
                 needs_broadcast = False
-
+        self.is_validating_block = False
+        
         if needs_broadcast:
             self._broadcast("block", block)
 
@@ -182,6 +187,7 @@ class Node(threading.Thread):
 
             
             self.is_minig = True
+            self.mining_thread_active = True
             # Crear hilo de minado
             self.minig_stop_event.clear()
             self.mining_thread = threading.Thread(target=self._mine_worker, args=(mempool_copy,self.stop_event), daemon=True)
@@ -200,6 +206,7 @@ class Node(threading.Thread):
                     
             self.is_minig = False
             self.mining_thread = None
+            self.mining_thread_active = False
             print(f"Node {self.node_id}: Minado detenido")
             
     def _mine_worker(self, transactions_to_mine: List[Transaction], stop_event: threading.Event):
@@ -256,14 +263,37 @@ class Node(threading.Thread):
     
         print(f"Nodo {self.node_id}: Solucion: {solution_partition}")
         if solution_partition and not stop_event.is_set():
-            
             candidate_block.partition_solution = solution_partition                
             
             try:
                 candidate_block.hash = candidate_block.calculate_final_hash()
-                # Enviar bloque minado a cola para procesarlo
-                print(f"Nodo {self.node_id}: Bloque minado {candidate_block.index} Hash: {candidate_block.hash[:8]}. Tiempo de minado: {solver_duration:.2f}")
-                self.incoming_queue.put(("mined_block", candidate_block))
+                
+                #BUCLE DE ESPERA Y COMPROBACION ANTES DE PUBLICAR
+                
+                max_wait_attempts = 20
+                attempt = 0
+                
+                while attempt < max_wait_attempts:
+                    if stop_event.is_set(): # Comprobar de nuevo si hemos recibido alguna para
+                        print(f"Nodo: {self.node_id}: Parada recibida mientras se esperaba para publicar")
+                        candidate_block.hash = None
+                        break
+                    
+                    can_publish = not self.is_validating_block
+                    
+                    if can_publish:
+                        print(f"Nodo {self.node_id}: Bloque minado y listo para publicar")
+                        # Enviar bloque minado a cola para procesarlo
+                        print(f"Nodo {self.node_id}: Bloque minado {candidate_block.index} Hash: {candidate_block.hash[:8]}. Hash bloque anterior: {candidate_block.previous_hash[:8]} Numero de transaciones:{len(candidate_block.transactions)} Tiempo de minado: {solver_duration:.2f}")
+                        self.incoming_queue.put(("mined_block", candidate_block))
+                        break
+                    else: # Estamos validando otro bloque
+                        time.sleep(0.1)
+                        attempt +=1
+                        
+                if attempt == max_wait_attempts and candidate_block.hash:
+                    print(f"Nodo {self.node_id}: Timeout para publicar expirado")
+                       
             except ValueError as e:
                 print(f"Nodo {self.node_id}: Error al calcular el hash despues de minar: {e}")
             except Exception as e:

@@ -1,11 +1,12 @@
 import hashlib
 import json
 from time import time
-from typing import List, Any 
+from typing import List, Any, Set 
 from quantum_block import Block
 from transactions import Transaction
 import networkx as nx
 import threading
+import copy
 
 class Blockchain:
     def __init__(self, 
@@ -14,7 +15,7 @@ class Blockchain:
                  initial_difficulty_ratio: float = 0.55): # Dificultad inicial
         
         self.chain: List[Block] = []
-        self.pending_transactions: List[Any] = [] # Mempool
+        self.pending_transactions: Set[Transaction] = set()
         self.N: int = protocol_N # Numero de nodos
         self.p: float = protocol_p 
         self.initial_difficulty_ratio: float = initial_difficulty_ratio 
@@ -121,5 +122,58 @@ class Blockchain:
         # TODO: Validar la cadena de bloques
         with self.lock:
             if not self.chain: return False
+            
+    #Metodo especial para deepcopy porque al tener locks no funciona bien
+    def __deepcopy__(self,memo): 
+        cls = self.__class__
+        new_blockchain = cls.__new__(cls) # Crear instancia sin llamar a __init__
+        memo[id(self)] = new_blockchain
+
+        # Copiar atributos simples
+        new_blockchain.N = self.N
+        new_blockchain.p = self.p
+        new_blockchain.initial_difficulty_ratio = self.initial_difficulty_ratio
+
+        # Copiar la cadena de bloques PROFUNDAMENTE
+        new_blockchain.chain = copy.deepcopy(self.chain, memo)
+
+        # Crear un NUEVO lock
+        new_blockchain.lock = threading.Lock()
+
+        # --- MANEJO DE PENDING_TRANSACTIONS ---
+        new_blockchain.pending_transactions = set() # Inicializar como set vacío
+        if hasattr(self, 'pending_transactions') and self.pending_transactions is not None:
+            for tx_data in self.pending_transactions: # Iterar sobre lo que sea que haya en la plantilla
+                if isinstance(tx_data, Transaction):
+                    # Si ya es un objeto Transaction, hacer deepcopy (Transaction debería ser deepcopyable)
+                    new_blockchain.pending_transactions.add(copy.deepcopy(tx_data, memo))
+                elif isinstance(tx_data, dict):
+                    # Si es un diccionario, convertirlo a un objeto Transaction
+                    print(f"Deepcopy Blockchain: Convirtiendo dict de pending_tx a objeto Transaction.")
+                    try:
+                        # Asume que el dict tiene las claves necesarias.
+                        # Podrías necesitar más validaciones aquí.
+                        new_tx_obj = Transaction(
+                            sender_address=tx_data.get('sender'),
+                            recipient_address=tx_data.get('recipient'),
+                            amount=tx_data.get('amount'),
+                            inputs=copy.deepcopy(tx_data.get('inputs', []), memo) # Deepcopy de inputs también
+                        )
+                        # Restaurar otros atributos si existen en el dict
+                        new_tx_obj.timestamp = tx_data.get('timestamp', time.time())
+                        new_tx_obj.signature = tx_data.get('signature')
+                        # Validar y añadir (opcional, pero bueno para consistencia)
+                        # if new_tx_obj.is_valid(): # OJO: is_valid necesita la clave pública correcta
+                        new_blockchain.pending_transactions.add(new_tx_obj)
+                        # else:
+                        #    print(f"Deepcopy: Tx convertida de dict no es válida, no se añade: {new_tx_obj}")
+                    except Exception as e:
+                        print(f"Deepcopy Blockchain: Error convirtiendo dict de pending_tx: {e}. Data: {tx_data}")
+                else:
+                    print(f"Deepcopy Blockchain: Tipo inesperado en pending_transactions de plantilla: {type(tx_data)}")
+        # --- FIN MANEJO DE PENDING_TRANSACTIONS ---
+
+        return new_blockchain
+        
 
         

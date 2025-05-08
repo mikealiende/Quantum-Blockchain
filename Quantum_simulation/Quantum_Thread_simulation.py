@@ -11,9 +11,9 @@ import threading
 # --- CONFIGURACION ---
 NUM_NODES = 2
 INITIAL_DIFFICULTY_RATIO = 0.60
-PROTOCOL_N = 15
+PROTOCOL_N = 13 
 PROTOCOL_P = 0.5
-SIMULATION_TIME = 60  # seconds
+SIMULATION_TIME = 30  # seconds
 
 # --Inicializacion
 print("Iniciando la simulacion...")
@@ -32,9 +32,9 @@ initial_block_hash = initial_blockchain_template.last_block.calculate_final_hash
 print(f"GENERAL: Initial block hash: {initial_block_hash[:8]}")
 for i in range(NUM_NODES):
     node_id = f"Node-{i}"
-    #node_block_chain_copy = copy.deepcopy(initial_blockchain_template)
+    node_block_chain_copy = copy.deepcopy(initial_blockchain_template)
     node = Node(node_id=node_id,
-                blockchain_instance=initial_blockchain_template, 
+                blockchain_instance=node_block_chain_copy, 
                 node_list= nodes,
                 stop_event=stop_event)
     nodes.append(node)
