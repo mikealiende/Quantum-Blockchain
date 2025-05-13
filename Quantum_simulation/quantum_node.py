@@ -3,7 +3,7 @@ from quantum_block import Block
 from transactions import Transaction, Wallet
 from QAOA_max_cut import solve_max_cut_qaoa
 import numpy as np
-from typing import List, Any, Set, Dict # For type hinting
+from typing import List, Any, Set, Dict, Optional # For type hinting
 import time
 import threading
 import queue
@@ -32,7 +32,8 @@ class Node(threading.Thread):
 
         self.is_minig = False # Flag para evitar minado en pararelo consigo mismo
         self.mining_thread_active = False #Indica si una tarea de minado está en marcha
-        self.minig_stop_event = threading.Event() # Detener un nodo
+        #self.minig_stop_event = threading.Event() # Detener un nodo
+        self.current_mining_task_stop_event: Optional[threading.Event] = None # Para detener un hilo de minado cuando se recibe un bloque válido
         self.is_validating_block = False # Indica si _handle_block esta ocupado
         self.mining_thread = None #Referencia al hilo minero
 
@@ -113,7 +114,11 @@ class Node(threading.Thread):
             return
 
         # 4. Validar PoW
-        is_pow_valid, calculated_cut = block.validate_PoW(graph_for_validation)
+        try:
+            is_pow_valid, calculated_cut = block.validate_PoW(graph_for_validation)
+        except e:
+            print(f"Nodo {self.node_id}: Error al validar PoW: {e}")
+            return
         if not is_pow_valid:
             print(f"Nodo {self.node_id}: Error en la validacion de PoW del bloque {block.index}. Corte = {calculated_cut}, Target = {target_cut_size}")
             return
@@ -189,27 +194,31 @@ class Node(threading.Thread):
             self.is_minig = True
             self.mining_thread_active = True
             # Crear hilo de minado
-            self.minig_stop_event.clear()
-            self.mining_thread = threading.Thread(target=self._mine_worker, args=(mempool_copy,self.stop_event), daemon=True)
+            
+            #self.minig_stop_event.clear()
+            
+            self.current_mining_task_stop_event = threading.Event() # Evento de parada para esta tarea en concreto
+            self.mining_thread = threading.Thread(target=self._mine_worker, args=(mempool_copy, self.current_mining_task_stop_event,self.stop_event), daemon=True)
             self.mining_thread.start() #Iniciar hilo de minado            
         
     
     def _stop_mining(self):
         '''Detiene el hilo de minado'''
-        if self.is_minig:
-            print(f"Nodo {self.node_id}: Deteniendo minado")
-            self.minig_stop_event.set() # Señalizar nodo que pare
-            if self.mining_thread and self.mining_thread.is_alive():
-                self.mining_thread.join(timeout=0.5)
-                if self.mining_thread.is_alive():
-                    print(f"Node {self.node_id}: Warning! Hilo de minado no termino bien")
-                    
-            self.is_minig = False
-            self.mining_thread = None
-            self.mining_thread_active = False
-            print(f"Node {self.node_id}: Minado detenido")
+        if self.mining_thread_active and self.current_mining_task_stop_event:
+            self.current_mining_task_stop_event.set() # Señalizar hilo de minado que pare
+            if self.is_minig:
+                print(f"Nodo {self.node_id}: Deteniendo minado")
+                #self.minig_stop_event.set() # Señalizar nodo que pare
+                if self.mining_thread and self.mining_thread.is_alive():
+                    self.mining_thread.join(timeout=0.5)
+                    if self.mining_thread.is_alive():
+                        print(f"Node {self.node_id}: Warning! Hilo de minado no termino bien")
+
+                self.is_minig = False
+                self.mining_thread = None
+                self.mining_thread_active = False
             
-    def _mine_worker(self, transactions_to_mine: List[Transaction], stop_event: threading.Event):
+    def _mine_worker(self, transactions_to_mine: List[Transaction],task_stop_event:threading.Event, node_stop_event: threading.Event):
         '''Minado max-cut QAOA'''
         if not transactions_to_mine:
             print(f"Node {self.node_id} No hay transacciones.")
@@ -256,13 +265,13 @@ class Node(threading.Thread):
         
         # Resolvemos Max-Cut
         start_solver_time = time.time()
-        solution_partition = solve_max_cut_qaoa(graph=graph_to_solve, target_cut=target_cut, node_id=self.node_id, stop_event=stop_event)
+        solution_partition = solve_max_cut_qaoa(graph=graph_to_solve, target_cut=target_cut, node_id=self.node_id, stop_event=task_stop_event)
         solver_duration = time.time() - start_solver_time
         
         
     
         print(f"Nodo {self.node_id}: Solucion: {solution_partition}")
-        if solution_partition and not stop_event.is_set():
+        if solution_partition and not node_stop_event.is_set():
             candidate_block.partition_solution = solution_partition                
             
             try:
@@ -274,7 +283,7 @@ class Node(threading.Thread):
                 attempt = 0
                 
                 while attempt < max_wait_attempts:
-                    if stop_event.is_set(): # Comprobar de nuevo si hemos recibido alguna para
+                    if node_stop_event.is_set(): # Comprobar de nuevo si hemos recibido alguna para
                         print(f"Nodo: {self.node_id}: Parada recibida mientras se esperaba para publicar")
                         candidate_block.hash = None
                         break
@@ -299,13 +308,19 @@ class Node(threading.Thread):
             except Exception as e:
                 print(f"Nodo {self.node_id}: Error inesperado al calcular el hash después de minar: {e}")
                 
-        elif stop_event.is_set():
+        elif node_stop_event.is_set() or task_stop_event.is_set():
             print(f"Nodo {self.node_id}: Minado detenido")
         else: #Solver ha fallado
             print(f"Nodo {self.node_id}: No se ha encontrado solucion al problema") #Que hacemos, volvemos a empezar?
         
         if self.mining_thread == threading.current_thread(): # Si somos el hilo actual
             self.is_minig = False
+            
+    def _stop(self): # Parada global del nodo
+        print(f"Nodo {self.node_id}: Parada general del nodo")
+        self.stop_event.set() # Señalizar el evento de parada
+        self.is_minig = False
+        self._stop_mining() 
       
     def run(self):
         '''Ejecuta el hilo del nodo, procesando mensajes de la cola de entrada'''

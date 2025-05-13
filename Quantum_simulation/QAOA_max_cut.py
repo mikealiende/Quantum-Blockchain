@@ -110,7 +110,7 @@ def solve_max_cut_qaoa(
     
     print(f"Nodo {node_id}: Iniciando optimización...")
     for i in range (optim_steps):
-        
+        print(f"Nodo {node_id}: Paso de optimización = {i}" )
         if stop_event.is_set(): # Comprobamos si tenemos que deternos antes de empezar la optimizacion
             print(f"Nodo {node_id}: Optimizacion detenida")
             return None
@@ -123,6 +123,11 @@ def solve_max_cut_qaoa(
        
         # Verficiar solucion cada check_interval
         if (i + 1) % check_interval == 0 or  i == optim_steps -1:
+            
+            if stop_event.is_set(): # 
+                print(f"[{node_id}] Solver: Detenido (stop_event) durante verificacion de solucion.")
+                return None
+            
             try:
                 current_probs = probability_circuit(params).numpy() # Obtener probabilidades
                 max_probs = np.argmax(current_probs)
@@ -153,7 +158,7 @@ def solve_max_cut_qaoa(
             except Exception as e:
                  print(f"Nodo {node_id}: Error inesperado - {e}")
                  
-            time.sleep(0.1)
+            time.sleep(0.1) # Para no saturar el procesador
             
             
     
