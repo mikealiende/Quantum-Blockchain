@@ -13,7 +13,7 @@ NUM_NODES = 2
 INITIAL_DIFFICULTY_RATIO = 0.6
 PROTOCOL_N = 14
 PROTOCOL_P = 0.5
-SIMULATION_TIME = 60  # seconds
+SIMULATION_TIME = 30  # seconds
 
 # --Inicializacion
 print("Iniciando la simulacion...")
@@ -100,8 +100,8 @@ finally:
         for block in node.blockchain.chain:
             print(f" - Bloque {block.index}: {block.calculate_hash()[:8]}... Tx: {len(block.transactions)}, Prevous: {block.previous_hash[:8]}..., Minado por {block.mined_by}")'''
 
-    #node_to_print = nodes[0]
-    #node_to_print.visualize_chain()
+    node_to_print = nodes[0]
+    node_to_print.visualize_chain()
 
 
     # Validar la cadena de bloques
