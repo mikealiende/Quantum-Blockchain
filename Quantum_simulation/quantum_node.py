@@ -116,7 +116,7 @@ class Node(threading.Thread):
         # 4. Validar PoW
         try:
             is_pow_valid, calculated_cut = block.validate_PoW(graph_for_validation)
-        except e:
+        except Exception as e:
             print(f"Nodo {self.node_id}: Error al validar PoW: {e}")
             return
         if not is_pow_valid:

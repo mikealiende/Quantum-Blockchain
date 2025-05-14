@@ -37,7 +37,7 @@ def solve_max_cut_qaoa(
     stop_event: threading.Event,
     node_id: str = "QAOA_solver", # Para logs
     n_layer: int = 2, # Capas QAOA
-    optim_steps: int = 80, # Pasos optimizador clásico
+    optim_steps: int = 20, # Pasos optimizador clásico
     check_interval: int = 10 # Cada cuando verifica si alcanzó el target_cut
     ) -> Optional[List[int]]:
     
@@ -110,7 +110,6 @@ def solve_max_cut_qaoa(
     
     print(f"Nodo {node_id}: Iniciando optimización...")
     for i in range (optim_steps):
-        print(f"Nodo {node_id}: Paso de optimización = {i}" )
         if stop_event.is_set(): # Comprobamos si tenemos que deternos antes de empezar la optimizacion
             print(f"Nodo {node_id}: Optimizacion detenida")
             return None
@@ -164,8 +163,8 @@ def solve_max_cut_qaoa(
     
     # --- 6. Si el bucle termina sin exito ---
     duration = time.time() -start_time
-    print(f"Nodo {node_id}: Bucle terminado sin solución. Mejor corte:{best_found_cut}. Tiempo: {duration:.2f}s")
-    return best_found_partition
+    print(f"Nodo {node_id}: Bucle terminado sin solución. Mejor corte:{best_found_cut}.Corte obejetivo: {target_cut} Tiempo: {duration:.2f}s")
+    return None
 
 
 
