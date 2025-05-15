@@ -10,6 +10,7 @@ import queue
 import random
 import hashlib
 import networkx as nx
+from datetime import datetime
 
 
 #graphviz_bin = r"C:\Program Files\Graphviz\bin"
@@ -350,6 +351,7 @@ class Node(threading.Thread):
                 #No hay mensajes en la cola
                 action = random.random()
                 
+                
                 # 2. Posibilidad de crear una transaccion
                 if action < 0.6: 
                     if len(self.peers_queues) > 0 :#Hay mas de un nodo conectado)
@@ -410,7 +412,7 @@ class Node(threading.Thread):
                                        Defaults to None (mostrar todos).
        """
        if filename is None:
-           filename = f"node_{self.node_id}_chain" # Indicar layout
+           filename = f"Imagenes_simulacion/_{self.node_id}_{datetime.now().strftime("%Y-%m-%d_%H-%M")}" # Indicar layout
        print(f"\n--- Generando visualización Graphviz (LR, V-Label) para {self.node_id} ({filename}) ---")
        dot = Digraph(comment=f'Blockchain de {self.node_id}', format='png')
        # 1. Dirección del grafo: Izquierda a Derecha
@@ -428,6 +430,7 @@ class Node(threading.Thread):
        start_index = self.blockchain.chain.index(chain_to_visualize[0])
        # 3. Añadir nodos (bloques) al grafo
        for i, block in enumerate(chain_to_visualize):
+           print(f"interacion visualizacion: {i}")
            actual_index = start_index + i
            miner_info = getattr(block, 'mined_by', 'N/A')
            hash = block.calculate_final_hash()
@@ -442,10 +445,16 @@ class Node(threading.Thread):
            ]
            label = "\n".join(label_lines) # Unir líneas con salto de línea
            # --- >> FIN DEL CAMBIO << ---
+           
            node_id = block.hash
+           if block.index == 0:
+               print(f"Imprimiendo bloque genesis")
+               dot.node(node_id, _attributes={'style': 'filled', 'color':'lightgreen'}) 
+               
+              
            dot.node(node_id, label=label) # El label ahora tiene saltos de línea
-           if i == "0":
-                dot.node(node_id, _attributes={'style': 'filled', 'color':'lightgreen'})
+           
+                
        # 4. Añadir aristas (conexiones) - Irán de Izquierda a Derecha
        for i in range(1, len(chain_to_visualize)):
            prev_block = chain_to_visualize[i-1]
