@@ -7,6 +7,8 @@ import time
 import threading
 import queue
 import random
+from datetime import datetime
+
 
 graphviz_bin = r"C:\Program Files\Graphviz\bin"
 
@@ -281,7 +283,7 @@ class Node(threading.Thread):
                                         Defaults to None (mostrar todos).
         """
         if filename is None:
-            filename = f"node_{self.node_id}_chain" # Indicar layout
+            filename = f"Imagenes_simulacion/Attack_{self.node_id}_{datetime.now().strftime("%Y-%m-%d_%H-%M")}" 
 
         print(f"\n--- Generando visualización Graphviz (LR, V-Label) para {self.node_id} ({filename}) ---")
 
