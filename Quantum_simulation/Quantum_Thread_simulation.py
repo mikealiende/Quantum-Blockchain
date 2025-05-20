@@ -1,9 +1,9 @@
-from quantum_blockchain import Blockchain
-from quantum_block import Block
-from transactions import Transaction
+from quantum_blockchain import Quantum_Blockchain
+from quantum_block import Quantum_Block
+from quantum_transactions import Transaction
 from typing import List, Any, Set # For type hinting
 import time
-from quantum_node import Node
+from quantum_node import Quantum_Node
 import copy
 import threading
 
@@ -17,12 +17,12 @@ SIMULATION_TIME = 60  # seconds
 
 # --Inicializacion
 print("Iniciando la simulacion...")
-nodes : List[Node] = [] 
+nodes : List[Quantum_Node] = [] 
 threads = []
 stop_event = threading.Event() # Evento para detener los hilos
 
 # --Crear instancia de Bockchain
-initial_blockchain_template = Blockchain(protocol_N=PROTOCOL_N,
+initial_blockchain_template = Quantum_Blockchain(protocol_N=PROTOCOL_N,
                                          protocol_p=PROTOCOL_P, 
                                          initial_difficulty_ratio=INITIAL_DIFFICULTY_RATIO)
 
@@ -33,7 +33,7 @@ print(f"GENERAL: Initial block hash: {initial_block_hash[:8]}")
 for i in range(NUM_NODES):
     node_id = f"Node-{i}"
     node_block_chain_copy = copy.deepcopy(initial_blockchain_template)
-    node = Node(node_id=node_id,
+    node = Quantum_Node(node_id=node_id,
                 blockchain_instance=node_block_chain_copy, 
                 node_list= nodes,
                 stop_event=stop_event)
@@ -77,7 +77,7 @@ finally:
     max_len = 0
     for node in nodes:
         chain_len = len(node.blockchain.chain)
-        lastblock :Block = node.blockchain.last_block
+        lastblock :Quantum_Block = node.blockchain.last_block
         last_hash = lastblock.calculate_final_hash() if chain_len > 0 else "N/A"
         print(f"Nodo {node.node_id}: Bloques={chain_len}, hash={last_hash[:8]}..., mempool= {len(node.mempool)}")
 

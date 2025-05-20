@@ -1,6 +1,6 @@
-from quantum_blockchain import Blockchain
-from quantum_block import Block
-from transactions import Transaction, Wallet
+from quantum_blockchain import Quantum_Blockchain
+from quantum_block import Quantum_Block
+from quantum_transactions import Transaction, Wallet
 from QAOA_max_cut import solve_max_cut_qaoa
 import numpy as np
 from typing import List, Any, Set, Dict, Optional # For type hinting
@@ -18,8 +18,8 @@ from datetime import datetime
 #os.environ["PATH"] += os.pathsep + graphviz_bin
 from graphviz import Digraph
 
-class Node(threading.Thread):
-    def __init__(self, node_id:str, blockchain_instance = Blockchain, node_list: list = None, stop_event: threading.Event = None):
+class Quantum_Node(threading.Thread):
+    def __init__(self, node_id:str, blockchain_instance = Quantum_Blockchain, node_list: list = None, stop_event: threading.Event = None):
         threading.Thread.__init__(self,daemon=True) # Llamar al init del Thread, daemon=True para que termine si el principal termina
         self.node_id = node_id
         self.blockchain = blockchain_instance
@@ -57,7 +57,7 @@ class Node(threading.Thread):
         "Devuelve la dirección de la wallet del nodo"
         return self.wallet.get_address()
     
-    def add_peer(self, peer_node: 'Node'):
+    def add_peer(self, peer_node: 'Quantum_Node'):
         "Almacena la cola del peer para poder enviar mensajes"
         if peer_node.node_id != self.node_id:
             self.peers_queues[peer_node.node_id] = peer_node.incoming_queue
@@ -81,7 +81,7 @@ class Node(threading.Thread):
         if needs_broadcast:
             self._broadcast("transaction", transaction)
     
-    def _handle_block(self, block: Block):
+    def _handle_block(self, block: Quantum_Block):
         '''Maneja bloques entrantes. Validacion max-cut'''
         # 1. Comporbar si conecemos el bloque
         
@@ -232,7 +232,7 @@ class Node(threading.Thread):
             return
         
         with self.data_lock: # Obtener estado actual
-            last_block: Block = self.blockchain.last_block
+            last_block: Quantum_Block = self.blockchain.last_block
             if not last_block or not last_block.calculate_final_hash(): #No hay último bloque
                 print(f"Nodo {self.node_id}: No hay bloques en la cadena")
                 self.is_minig = False
@@ -241,7 +241,7 @@ class Node(threading.Thread):
             prev_hash = last_block.calculate_final_hash()
             
             # Creamos bloque candidato
-            candidate_block = Block(
+            candidate_block = Quantum_Block(
                 index=last_block.index +1,
                 timestamp=time.time(),
                 transactions=transactions_to_mine,
@@ -332,7 +332,7 @@ class Node(threading.Thread):
         '''Ejecuta el hilo del nodo, procesando mensajes de la cola de entrada'''
         print(f"Nodo {self.node_id}: Iniciando hilo de procesamiento")
         
-        lastblock:Block = self.blockchain.last_block
+        lastblock:Quantum_Block = self.blockchain.last_block
         while not self.stop_event.is_set():
             try:
                 # 1. Procesar mensajes entrantes (no bloqueante)
@@ -430,7 +430,6 @@ class Node(threading.Thread):
        start_index = self.blockchain.chain.index(chain_to_visualize[0])
        # 3. Añadir nodos (bloques) al grafo
        for i, block in enumerate(chain_to_visualize):
-           print(f"interacion visualizacion: {i}")
            actual_index = start_index + i
            miner_info = getattr(block, 'mined_by', 'N/A')
            hash = block.calculate_final_hash()

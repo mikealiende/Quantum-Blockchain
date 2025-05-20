@@ -4,12 +4,12 @@ from time import time
 from typing import List, Any, Dict, Tuple, Optional
 
 import numpy as np
-from transactions import Transaction
+from quantum_transactions import Transaction
 import random
 import networkx as nx
 
 
-class Block:
+class Quantum_Block:
     def __init__(self, 
                  index: int, 
                  timestamp: float, 
@@ -138,7 +138,7 @@ class Block:
             #Calcuar target en funcion de las aristas del grafo generado y de difficulty_ratio
             target_cut = self.calculate_target()
             
-            calculated_cut = Block._calculate_cut_size(current_graph, self.partition_solution)
+            calculated_cut = Quantum_Block._calculate_cut_size(current_graph, self.partition_solution)
             if  calculated_cut >= target_cut:
                 return True, calculated_cut
         except ValueError as e:

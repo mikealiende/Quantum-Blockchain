@@ -1,5 +1,5 @@
-from transactions import Wallet
-from quantum_block import Block
+from Quantum_simulation.quantum_transactions import Wallet
+from quantum_block import Quantum_Block
 from time import time
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -19,7 +19,7 @@ def draw_partions(graph,solution_array,num_nodes,found_cut_size ):
     plt.title(f"Particiones del Max-Cut. Cortes: {found_cut_size}")
     plt.show()
 
-block = Block(index=1,
+block = Quantum_Block(index=1,
             timestamp=time(),
             transactions=[{"de": "A", "para": "B", "cantidad": 15},{"de": "C", "para": "B", "cantidad": 5} ],
             previous_hash="0"*64,

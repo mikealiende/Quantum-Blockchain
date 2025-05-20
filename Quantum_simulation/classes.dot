@@ -1,0 +1,5 @@
+digraph "classes" {
+rankdir=BT
+charset="utf-8"
+"quantum_block.Quantum_Block" [color="black", fontcolor="black", label=<{Quantum_Block|difficulty_ratio : float<br ALIGN="LEFT"/>graph_N : int<br ALIGN="LEFT"/>graph_p : float<br ALIGN="LEFT"/>hash : Optional[str]<br ALIGN="LEFT"/>index : int<br ALIGN="LEFT"/>mined_by : str<br ALIGN="LEFT"/>partition_solution : Optional[List]<br ALIGN="LEFT"/>previous_hash : str<br ALIGN="LEFT"/>timestamp : float<br ALIGN="LEFT"/>transaction_hash : str<br ALIGN="LEFT"/>transactions : List[Transaction]<br ALIGN="LEFT"/>|calculate_final_hash(): str<br ALIGN="LEFT"/>calculate_target(graph: Optional[nx.Graph]): int<br ALIGN="LEFT"/>generate_graph()<br ALIGN="LEFT"/>get_header_data_for_hash(): Dict[str, Any]<br ALIGN="LEFT"/>validate_PoW(graph: Optional[nx.Graph]): Tuple[bool, int]<br ALIGN="LEFT"/>}>, shape="record", style="solid"];
+}

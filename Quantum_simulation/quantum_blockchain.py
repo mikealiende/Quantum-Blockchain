@@ -2,19 +2,19 @@ import hashlib
 import json
 from time import time
 from typing import List, Any, Set 
-from quantum_block import Block
-from transactions import Transaction
+from quantum_block import Quantum_Block
+from quantum_transactions import Transaction
 import networkx as nx
 import threading
 import copy
 
-class Blockchain:
+class Quantum_Blockchain:
     def __init__(self, 
                  protocol_N: int,
                  protocol_p: float,
                  initial_difficulty_ratio: float = 0.55): # Dificultad inicial
         
-        self.chain: List[Block] = []
+        self.chain: List[Quantum_Block] = []
         self.pending_transactions: Set[Transaction] = set()
         self.N: int = protocol_N # Numero de nodos
         self.p: float = protocol_p 
@@ -27,7 +27,7 @@ class Blockchain:
 
     def create_genesis_block(self):
         '''Crear primer bloque de la cadena'''
-        genesis_block = Block(
+        genesis_block = Quantum_Block(
             index=0,
             timestamp=time(),
             transactions=[],
@@ -50,7 +50,7 @@ class Blockchain:
 
 
     @property
-    def last_block(self) -> Block:
+    def last_block(self) -> Quantum_Block:
         return self.chain[-1]
     
     def get_current_difficulty(self) -> int:
@@ -64,7 +64,7 @@ class Blockchain:
 
     
     
-    def add_block(self, block: Block)-> bool:
+    def add_block(self, block: Quantum_Block)-> bool:
         '''Añadir un bloque después de la validación'''
         with self.lock:
             last_block =self.last_block
