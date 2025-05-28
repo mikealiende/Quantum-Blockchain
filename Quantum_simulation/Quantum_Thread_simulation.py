@@ -13,7 +13,7 @@ NUM_NODES = 3
 INITIAL_DIFFICULTY_RATIO = 0.58
 PROTOCOL_N = 14
 PROTOCOL_P = 0.5
-SIMULATION_TIME = 60  # seconds
+SIMULATION_TIME = 40  # seconds
 
 # --Inicializacion
 print("Iniciando la simulacion...")
