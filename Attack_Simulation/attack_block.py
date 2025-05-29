@@ -1,7 +1,7 @@
 import hashlib
 import json
 from time import time
-from typing import List, Any # For type hinting
+from typing import List
 from attack_transactions import Transaction
 
 

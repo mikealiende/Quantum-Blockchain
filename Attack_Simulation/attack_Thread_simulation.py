@@ -1,7 +1,7 @@
 from attack_blockchain import Blockchain
 from attack_block import Block
 from attack_transactions import Transaction
-from typing import List, Any, Set # For type hinting
+from typing import List
 import time
 from attack_node import Node
 import copy
@@ -21,13 +21,13 @@ NORMAL_NODE_SPEED_MULTIPLIER = 0.2
 
 
 
-# --Inicializacion
+# -- Inicializacion --
 print("Iniciando la simulacion...")
 nodes : List[Node] = [] 
 threads = []
 stop_event = threading.Event() # Evento para detener los hilos
 
-# --Crear instancia de Bockchain
+# -- Crear instancia de Bockchain --
 initial_blockchain_template = Blockchain(difficulty=INITIAL_DIFFICULTY)
 
 # 1. Crear nodos sin inicializar
@@ -98,27 +98,8 @@ finally:
     else:
         print("INCONSISTENCIA")
 
-    '''for node in nodes:
-        print(f"\nCadena de bloques de {node.node_id}:")
-        for block in node.blockchain.chain:
-            print(f" - Bloque {block.index}: {block.calculate_hash()[:8]}... Tx: {len(block.transactions)}, Prevous: {block.previous_hash[:8]}..., Minado por {block.mined_by}")'''
-
     node_to_print = nodes[0]
     node_to_print.visualize_chain()
 
-
-    # Validar la cadena de bloques
-    '''  
-    all_valid = True
-    for node in nodes:
-        print(f"Validando cadena de {node.node_id}...")
-        is_valid = node.blockchain.is_chain_valid()
-        print(f" - Cadena {node.node_id}: {'Válida' if is_valid else 'No valida'}")
-        if not is_valid:
-            all_valid = False
-        if not all_valid:
-            print("Cadena no valida")        
-    '''
-        
             
 

@@ -2,16 +2,15 @@ import os
 from attack_blockchain import Blockchain
 from attack_block import Block
 from attack_transactions import Transaction, Wallet
-from typing import List, Any, Set, Dict # For type hinting
+from typing import List, Set, Dict
 import time
 import threading
 import queue
 import random
 from datetime import datetime
 
-
+# Para represetanción visual de los bloques. Con el MAC no hace falta
 graphviz_bin = r"C:\Program Files\Graphviz\bin"
-
 os.environ["PATH"] += os.pathsep + graphviz_bin
 from graphviz import Digraph
 
@@ -22,9 +21,8 @@ class Node(threading.Thread):
         self.blockchain = blockchain_instance
         self.wallet = Wallet()
         self.mempool: Set[Transaction] = set()
-        # self.peers: List['Node'] = []
-        self.peers_queues: Dict[str, queue.Queue] = {} #Almacena colas de enrada de los peers
-        self.incoming_queue = queue.Queue() #Cola de entrada a este nodo
+        self.peers_queues: Dict[str, queue.Queue] = {} # Almacena colas de enrada de los peers
+        self.incoming_queue = queue.Queue() # Cola de entrada a este nodo
         self.known_tx_hashes: Set[str] = set()
         self.known_block_hashes: Set[str] = set()
         if self.blockchain.chain:
@@ -33,12 +31,11 @@ class Node(threading.Thread):
         self.node_list = node_list
         self.stop_event = stop_event
 
-        self.is_minig = False #Flag para evitar minado en pararelo consigo mismo
-        self.mining_thread = None #Referencia al hilo minero
+        self.is_minig = False # Flag para evitar minado en pararelo consigo mismo
+        self.mining_thread = None # Referencia al hilo minero
 
-        self.data_lock = threading.Lock() #Lock para bloquear accesos concurrentes
+        self.data_lock = threading.Lock() # Lock para bloquear accesos concurrentes
         self.mining_speed = mining_speed
-
 
         print(f"Nodo {self.node_id} creado. Dirección Wallet: {self.wallet.get_address()[:10]}... ")
 
@@ -61,7 +58,6 @@ class Node(threading.Thread):
                 return
             self.known_tx_hashes.add(tx_hash)
             if transaction.is_valid() and transaction not in self.mempool:
-                #print(f"Nodo {self.node_id}: Anadida Tx {tx_hash[:8]} a memepool")
                 self.mempool.add(transaction)
                 needs_broadcast = True
             else:
@@ -93,11 +89,10 @@ class Node(threading.Thread):
         
         # --- MODIFICACION ESTADO  (necesita lock)---  
         with self.data_lock:
-            last_local_block = self.blockchain.last_block #Leer ultimo bloque
-            #print(f"Nodo {self.node_id}: Validando bloque {block.index}. Previous hash del bloque a validar: {block.previous_hash[:8]}.Hash del ultimo bloque de la blockchain: {last_local_block.calculate_hash()[:8]}")
+            last_local_block = self.blockchain.last_block # Leer ultimo bloque
             # 3. Validar enlace (previous hash e index)
             if block.index == last_local_block.index + 1 and block.previous_hash == last_local_block.calculate_hash():
-                #Bloque valido, extiende la cadena actual
+                # Bloque valido, extiende la cadena actual
                 print(f"Nodo {self.node_id}: Bloque {block.index} VALIDA, anadiendlo a blockchain")
                 self.blockchain.chain.append(block)
 
@@ -106,12 +101,12 @@ class Node(threading.Thread):
                 self.mempool.difference_update(block_tx_hashes)
                 self.known_tx_hashes.difference_update(block_tx_hashes)
 
-                #Paramos minado
+                # Paramos minado
                 if self.is_minig:
                     self._stop_mining()
                 need_broadcast = True
             else:
-                #Blqoue no valido
+                # Blqoue no valido
                 print(f"Nodo {self.node_id}: Bloque {block.index} no valido, (index o previous hash incorrecto)")
                 need_broadcast = False
         # 4. Enviar bloque a los peers
@@ -121,11 +116,10 @@ class Node(threading.Thread):
 
     def _broadcast(self, msg_type:str, data:any):
         '''Envia mensaje a las colas de todos los peers conocidos'''
-        #print(f"Nodo {self.node_id}: transmitiendo {msg_type}...")
-        message = (msg_type, data) #Empaquetar tipo y datos
+        message = (msg_type, data) # Empaquetar tipo y datos
         for peer_id, peer_queue in self.peers_queues.items():
             try:
-                peer_queue.put(message,block=False) #No bloquear si la cola esta llena
+                peer_queue.put(message,block=False) # No bloquear si la cola esta llena
             except queue.Full:
                 print(f"Nodo {self.node_id}: WARN - Cola del peer {peer_id} llena. Mensaje descartado")
     
@@ -136,17 +130,15 @@ class Node(threading.Thread):
                 print(f"Nodo {self.node_id}: Minado ya en curso")
                 return
             mempool_copy = list(self.mempool)
-            #print(f"Nodo {self.node_id}: Copiando mempool ({len(mempool_copy)}) transacciones")
 
             if not mempool_copy:
                 print(f"Nodo {self.node_id}: Nada que minar")
                 return
-
-            
+          
             self.is_minig = True
             # Crear hilo de minado
             self.mining_thread = threading.Thread(target=self._mine_worker, args=(mempool_copy,), daemon=True)
-            self.mining_thread.start() #Iniciar hilo de minado            
+            self.mining_thread.start() # Iniciar hilo de minado            
         
     
     def _stop_mining(self):
@@ -165,7 +157,6 @@ class Node(threading.Thread):
         print(f"Nodo {self.node_id}: Iniciando minado de bloque con {len(transactions_to_mine)} Txs")
         last_block = self.blockchain.last_block
         hash_last_block = last_block.calculate_hash()
-        #print(f"Nodo {self.node_id}: Ultimo bloque conocido: {last_block.index} ({hash_last_block[:8]}...)")
 
         new_block_candidate = Block(
             index=last_block.index +1,
@@ -181,7 +172,7 @@ class Node(threading.Thread):
         nonce = 0
         BASE_CHECK_INTERVAL = 10000 # Numero de nonces que se prueban antes de una pausa. 
         check_interval = int(BASE_CHECK_INTERVAL * self.mining_speed)
-        if check_interval <= 0: check_interval = 1 #Para eviar problemas.
+        if check_interval <= 0: check_interval = 1 # Para eviar problemas.
         pause_duration = 1   
         start_mining_time = time.time()
         while self.is_minig:
@@ -189,11 +180,11 @@ class Node(threading.Thread):
             hash_result = new_block_candidate.calculate_hash()
             if hash_result.startswith(target):
                 print(f"Nodo {self.node_id}: BLOQUE MINADO! con nonce {nonce} ({hash_result[:8]}...). Tiempo de minado: {(time.time()-start_mining_time):.2f}")
-                self.incoming_queue.put(("mined_block", new_block_candidate)) #Enviar bloque minado a la cola de entrada
-                self.is_minig = False #Parar el hilo de minado
+                self.incoming_queue.put(("mined_block", new_block_candidate)) # Enviar bloque minado a la cola de entrada
+                self.is_minig = False # Parar el hilo de minado
                 return
             nonce += 1
-            #Pequeño delay para evitar bucle infinito
+            # Pequeño delay para evitar bucle infinito
             if nonce % check_interval==0:
                 if not self.is_minig or self.stop_event.is_set():
                     print(f"Nodo {self.node_id}: Minado detenido por evento de parada")
@@ -210,7 +201,6 @@ class Node(threading.Thread):
             try:
                 # 1. Procesar mensajes entrantes (no bloqueante)
                 message_type, data = self.incoming_queue.get(block=False)
-                #print(f"Nodo {self.node_id}: Recibo mensaje {message_type}")
                 if message_type == "transaction":
                     self._handle_transaction(data)
                 elif message_type == "block":
@@ -219,13 +209,13 @@ class Node(threading.Thread):
                 elif message_type == "mined_block":
                     print(f"Nodo {self.node_id}: Recibo bloque minado")
                     self._handle_block(data)
-                self.incoming_queue.task_done() #Marcar tarea como completada
+                self.incoming_queue.task_done() # Marcar tarea como completada
             except queue.Empty:
-                #No hay mensajes en la cola
+                # No hay mensajes en la cola
                 action = random.random()
                 # 2. Posibilidad de crear una transaccion
-                if action < 0.1: #10% de probabilidad por ciclo
-                    if len(self.peers_queues) > 0 :#Hay mas de un nodo conectado)
+                if action < 0.1: # 10% de probabilidad por ciclo
+                    if len(self.peers_queues) > 0 :# Hay mas de un nodo conectado)
                         if self.node_list and len (self.node_list) > 1:
                             possible_recipients = [n for n in self.node_list if n.node_id != self.node_id]
                             if possible_recipients:
@@ -236,13 +226,13 @@ class Node(threading.Thread):
                             else:
                                 print(f"Nodo {self.node_id}: No hay nodos disponibles para enviar Tx")
                 # 3. Posibilidad de minar un bloque
-                elif action < 0.3: #20% de probabilidad por ciclo
-                    with self.data_lock: #Necesario para chequear mempool
+                elif action < 0.3: # 30% de probabilidad por ciclo
+                    with self.data_lock: # Necesario para chequear mempool
                         can_mine =  not self.is_minig and len(self.mempool) > 0
                     if can_mine:
                         self._start_mining()
-                #Pausa para evitar consumo excesivo de CPU
-                time.sleep(random.uniform(0.1, 0.5)) #Pausa aleatoria entre 0.1 y 0.5 segundos
+                # Pausa para evitar consumo excesivo de CPU
+                time.sleep(random.uniform(0.1, 0.5)) # Pausa aleatoria entre 0.1 y 0.5 segundos
         print(f"Nodo {self.node_id}: Hilo detenido")        
     
     def _create_and_broadcast_transaction(self, recipient_address:str, amount:float):
@@ -256,9 +246,8 @@ class Node(threading.Thread):
         tx.sign_transaction(self.wallet)
         tx_hash = tx.calculate_hash()
         if tx.is_valid():
-            with self.data_lock: #Acceso a mempool y known_tx_hashes
+            with self.data_lock: # Acceso a mempool y known_tx_hashes
                 if tx not in self.mempool and tx_hash not in self.known_tx_hashes:
-                    #print(f"Nodo {self.node_id}: Transacción válida {tx_hash[:8]}...")
                     self.mempool.add(tx)
                     self.known_tx_hashes.add(tx_hash)
                     needs_broadcast = True
@@ -310,7 +299,6 @@ class Node(threading.Thread):
             miner_info = getattr(block, 'mined_by', 'N/A')
             hash = block.calculate_hash()
 
-            # --- >> CAMBIO CLAVE: Crear Label con Saltos de Línea ('\n') << ---
             label_lines = [
                 f"Bloque {block.index}",
                 f"Hash: {hash[:10]}...", # Mostrar un poco más del hash?
@@ -319,7 +307,6 @@ class Node(threading.Thread):
                 f"Minado por: {miner_info}"
             ]
             label = "\n".join(label_lines) # Unir líneas con salto de línea
-            # --- >> FIN DEL CAMBIO << ---
 
             node_id = block.hash
             dot.node(node_id, label=label) # El label ahora tiene saltos de línea
@@ -327,7 +314,7 @@ class Node(threading.Thread):
             if block.previous_hash == "0":
                  dot.node(node_id, _attributes={'style': 'filled', 'color':'lightgreen'})
 
-        # 4. Añadir aristas (conexiones) - Irán de Izquierda a Derecha
+        # 4. Añadir aristas (conexiones) - De Izquierda a Derecha
         for i in range(1, len(chain_to_visualize)):
             prev_block = chain_to_visualize[i-1]
             current_block = chain_to_visualize[i]
