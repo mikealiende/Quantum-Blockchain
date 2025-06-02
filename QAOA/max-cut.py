@@ -3,13 +3,8 @@ from pennylane import numpy as np
 import networkx as nx 
 import matplotlib.pyplot as plt
 import random
+
 # --- 1. DEFINIR EL GRAFO ---
-'''
-num_nodes = 6
-np.random.seed(22)
-adj_matrix = np.random.randint(0,2, size=(num_nodes, num_nodes))
-adj_matrix = np.triu(adj_matrix, 1)
-graph = nx.from_numpy_array(adj_matrix)'''
 
 prng = random.Random(7)
 
@@ -29,7 +24,7 @@ nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray')
 plt.title("Grafo de Ejemplo para Max-Cut (PennyLane)")
 plt.show()
 
-# Hamiltoniano de Coste (H_C): Suma de Z_i Z_j sobre las aristas (i,j)
+# Hamiltoniano de Coste y mezcla
 cost_h, mixer_h = qml.qaoa.maxcut(graph=graph)
 
 print("Hamiltoniano de Coste (H_C):")
@@ -49,11 +44,11 @@ def circuit(param, wires):
     gammas = param[0]
     betas = param[1]
     
-    #Iniciar superposición
+    # Iniciar superposición
     for i in wires:
         qml.Hadamard(wires=i)
         
-    #Aplicar capas de QAOA
+    # Aplicar capas de QAOA
     for i in range(n_layers):
         qaoa_layer(gammas[i], betas[i])
         
@@ -77,8 +72,7 @@ for i in range(steps):
     params = optimizer.step(cost_function, params)
     if(i+1)%10 ==0:
         cost_val = cost_function(params)
-        
-        
+               
 print("optimizacion finalizada")
 optimal_params = params
 print(f"\nParametros optimos: \nGammas:{optimal_params[0]}\nBetas: {optimal_params[1]}")
@@ -91,7 +85,7 @@ def probability_circuit(params):
 
 probs = probability_circuit(optimal_params)
 
-#Encontrar circuito con los parámetros optimos
+# Encontrar circuito con los parámetros optimos
 most_likely_state_index = np.argmax(probs)
 solution_bitstring = format(most_likely_state_index, f'0{PROTOCOL_N}b')
 solution_array = [int(bit) for bit in solution_bitstring]
@@ -101,30 +95,29 @@ print("\n Generado grafico distribucion de probabilidad")
 num_states = 2**PROTOCOL_N
 state_labels = [format(i, f'0{PROTOCOL_N}b') for i in range(num_states)]
 
-plt.figure(figsize=(12, 6)) # Ajusta el tamaño si es necesario
-plt.bar(state_labels, probs.numpy()) # Usamos .numpy() para obtener el array numpy si es necesario
+plt.figure(figsize=(12, 6))
+plt.bar(state_labels, probs.numpy()) 
 plt.xlabel("Estado Computacional (Cadena de Bits / Partición)", fontsize=12)
 plt.ylabel("Probabilidad", fontsize=12)
 plt.title(f"Distribución de Probabilidad del Estado Final QAOA (N={PROTOCOL_N}, p={n_layers})", fontsize=14)
-plt.xticks(rotation=90, fontsize=8) # Rotar etiquetas si hay muchas
+plt.xticks(rotation=90, fontsize=8)
 plt.yticks(fontsize=10)
 plt.ylim(bottom=0) # Asegurar que el eje Y empiece en 0
 plt.grid(axis='y', linestyle='--', alpha=0.7)
-plt.tight_layout() # Ajusta el layout para evitar solapamientos
+plt.tight_layout()
 plt.show()
 
 # Calcular corte para la solucion encontrada
 def calculate_cut_size(graph, partition_array):
     cut_size = 0
     for i, j in graph.edges():
-        if partition_array[i] != partition_array[j]: #si los nodos estan en particiones diferentes
+        if partition_array[i] != partition_array[j]: # si los nodos estan en particiones diferentes
             cut_size += 1
     return cut_size
 
 found_cut_size = calculate_cut_size(graph, solution_array)
 print(f"Tamano del corte encontrado: {found_cut_size}")
         
-    
 # dibujar grafo con particiones
 colors = ['r' if solution_array[i] == 0 else 'b' for i in range(PROTOCOL_N)]
 nx. draw(graph, pos, with_labels = True, node_color = colors, edge_color = 'gray')
