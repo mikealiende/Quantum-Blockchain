@@ -48,7 +48,6 @@ class Quantum_Blockchain:
         except Exception as e:
             print(f"Error inesperado: {e}")
 
-
     @property
     def last_block(self) -> Quantum_Block:
         return self.chain[-1]
@@ -56,23 +55,18 @@ class Quantum_Blockchain:
     def get_current_difficulty(self) -> int:
         return self.initial_difficulty_ratio
 
-
-
     def add_transaction(self, transaction: Any):
-        # Validad la transacción TO DO
         self.pending_transactions.append(transaction)
 
-    
-    
     def add_block(self, block: Quantum_Block)-> bool:
-        '''Añadir un bloque después de la validación'''
+        '''Anadir un bloque después de la validacion'''
         with self.lock:
             last_block =self.last_block
             if not last_block:
                 print("No hay bloques en la cadena")
                 return False
             
-            '''--- Validacion básica ---'''
+            # --- Validacion basica ---
 
             # 1. Validar index  
             if block.index != last_block.index + 1:
@@ -93,8 +87,7 @@ class Quantum_Blockchain:
             except ValueError:
                 print(f"Error al calcular el hash del bloque {block.index}")
                 return False
-            
-            #print(f"Bloque {block.index} con hash: {block.hash[:8]}... añadido a la cadena")
+
             self.chain.append(block)
 
             # Limpiar mempool
@@ -113,8 +106,7 @@ class Quantum_Blockchain:
             except Exception as e:
                 print(f"Error inesperado al limpiar el mempool: {e}")
                 return False
-            
-            
+                    
             return True
 
     def is_chain_valid(self) -> bool:
@@ -123,7 +115,7 @@ class Quantum_Blockchain:
         with self.lock:
             if not self.chain: return False
             
-    #Metodo especial para deepcopy porque al tener locks no funciona bien
+    #Metodo  para deepcopy porque al tener locks no funciona bien
     def __deepcopy__(self,memo): 
         cls = self.__class__
         new_blockchain = cls.__new__(cls) # Crear instancia sin llamar a __init__
@@ -137,41 +129,32 @@ class Quantum_Blockchain:
         # Copiar la cadena de bloques PROFUNDAMENTE
         new_blockchain.chain = copy.deepcopy(self.chain, memo)
 
-        # Crear un NUEVO lock
+        # Crear un nuevo lock
         new_blockchain.lock = threading.Lock()
 
         # --- MANEJO DE PENDING_TRANSACTIONS ---
-        new_blockchain.pending_transactions = set() # Inicializar como set vacío
+        new_blockchain.pending_transactions = set()
         if hasattr(self, 'pending_transactions') and self.pending_transactions is not None:
-            for tx_data in self.pending_transactions: # Iterar sobre lo que sea que haya en la plantilla
+            for tx_data in self.pending_transactions:
                 if isinstance(tx_data, Transaction):
-                    # Si ya es un objeto Transaction, hacer deepcopy (Transaction debería ser deepcopyable)
                     new_blockchain.pending_transactions.add(copy.deepcopy(tx_data, memo))
                 elif isinstance(tx_data, dict):
-                    # Si es un diccionario, convertirlo a un objeto Transaction
                     print(f"Deepcopy Blockchain: Convirtiendo dict de pending_tx a objeto Transaction.")
                     try:
-                        # Asume que el dict tiene las claves necesarias.
-                        # Podrías necesitar más validaciones aquí.
                         new_tx_obj = Transaction(
                             sender_address=tx_data.get('sender'),
                             recipient_address=tx_data.get('recipient'),
                             amount=tx_data.get('amount'),
-                            inputs=copy.deepcopy(tx_data.get('inputs', []), memo) # Deepcopy de inputs también
+                            inputs=copy.deepcopy(tx_data.get('inputs', []), memo) # Deepcopy de inputs
                         )
                         # Restaurar otros atributos si existen en el dict
                         new_tx_obj.timestamp = tx_data.get('timestamp', time.time())
                         new_tx_obj.signature = tx_data.get('signature')
-                        # Validar y añadir (opcional, pero bueno para consistencia)
-                        # if new_tx_obj.is_valid(): # OJO: is_valid necesita la clave pública correcta
                         new_blockchain.pending_transactions.add(new_tx_obj)
-                        # else:
-                        #    print(f"Deepcopy: Tx convertida de dict no es válida, no se añade: {new_tx_obj}")
                     except Exception as e:
                         print(f"Deepcopy Blockchain: Error convirtiendo dict de pending_tx: {e}. Data: {tx_data}")
                 else:
                     print(f"Deepcopy Blockchain: Tipo inesperado en pending_transactions de plantilla: {type(tx_data)}")
-        # --- FIN MANEJO DE PENDING_TRANSACTIONS ---
 
         return new_blockchain
         

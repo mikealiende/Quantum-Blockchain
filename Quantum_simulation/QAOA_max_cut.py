@@ -14,7 +14,6 @@ def _calculate_cut_size(graph: nx.Graph, partition: List[int]) -> int:
         print(f"Error! Tamano de particion y de numero de nodos no coincide")
         return -1
     
-    
     cut_size = 0
     
     for u, v in graph.edges():
@@ -37,16 +36,10 @@ def solve_max_cut_qaoa(
     stop_event: threading.Event,
     node_id: str = "QAOA_solver", # Para logs
     n_layer: int = 2, # Capas QAOA
-    optim_steps: int = 20, # Pasos optimizador clásico
-    check_interval: int = 10 # Cada cuando verifica si alcanzó el target_cut
+    optim_steps: int = 20, # Pasos optimizador clasico
+    check_interval: int = 10 # Cada cuando verifica si se alcanzo el target_cut
     ) -> Optional[List[int]]:
-    
-    '''
-    Intenta resolver max-cut para un grafo dado usando QAOA
-    
-    Devuelve una lista representando la partición [0,1,0,...]
-    '''
-    
+        
     num_nodes = graph.number_of_nodes()
     start_time = time.time()
     
@@ -64,14 +57,14 @@ def solve_max_cut_qaoa(
         print(f"Nodo {node_id}: Error al generar Hamiltoniano - {e}")
         return None
     
-    #  --- 2. Configurar dispositivo simulación ---
+    #  --- 2. Configurar dispositivo simulacion ---
     try: 
         dev = qml.device('default.qubit', wires=num_nodes)
     except qml.DeviceError as e:
         print(f"Nodo {node_id}: Error al crear simulador Pennylane - {e}")
         return None
     
-    # --- 3. Definir circuito QAOA en la función
+    # --- 3. Definir circuito QAOA en la funcion
     
     def qaoa_layer(gamma, beta):
         qml.qaoa.cost_layer(gamma, cost_h)
@@ -104,7 +97,7 @@ def solve_max_cut_qaoa(
     params = np.random.uniform(0, 2 * np.pi, (2, n_layer), requires_grad = True)
     
     
-    # -- Bucle que optimizacion
+    # -- Bucle de optimizacion
     best_found_partition = None
     best_found_cut = -1
     
@@ -143,15 +136,12 @@ def solve_max_cut_qaoa(
                 if current_cut > best_found_cut:
                     best_found_cut = current_cut
                     best_found_partition = current_partition
-                    
-                #print(f"Iteracion {i+1}. Mejor corte hasta ahora: {best_found_cut}")
-                
+                                  
                 if current_cut >= target_cut:
                     duration = time.time() - start_time
                     print(f"Nodo {node_id}: Solucion encontrada. Corte: {current_cut}. Tiempo: {duration:.2f}s")
                     return current_partition
                     
-            
             except qml.QuantumFunctionError as e:
                 print(f"Nodo {node_id}: Error QuantumFunctionError - {e}")
             except Exception as e:
@@ -159,8 +149,6 @@ def solve_max_cut_qaoa(
                  
             time.sleep(0.1) # Para no saturar el procesador
             
-            
-    
     # --- 6. Si el bucle termina sin exito ---
     duration = time.time() -start_time
     print(f"Nodo {node_id}: Bucle terminado sin solución. Mejor corte:{best_found_cut}.Corte obejetivo: {target_cut} Tiempo: {duration:.2f}s")

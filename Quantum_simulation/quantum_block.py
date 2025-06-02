@@ -2,12 +2,10 @@ import hashlib
 import json
 from time import time
 from typing import List, Any, Dict, Tuple, Optional
-
 import numpy as np
 from quantum_transactions import Transaction
 import random
 import networkx as nx
-
 
 class Quantum_Block:
     def __init__(self, 
@@ -16,12 +14,11 @@ class Quantum_Block:
                  transactions: List[Transaction], 
                  previous_hash: str, 
                  mined_by : str, 
-                 protocol_N: int, #Numero de nodos del grafo
-                 protocol_p: float, #Probabilidad de arista
+                 protocol_N: int, # Numero de nodos del grafo
+                 protocol_p: float, # Probabilidad de arista
                  difficulty_ratio: float = 0.5
                  ):
-        
-        
+         
         self.index = index
         self.timestamp = timestamp
         self.transactions: List[Transaction]= transactions # List of Transaction objects or dictionaries
@@ -40,14 +37,13 @@ class Quantum_Block:
         """Calcula un hash determinista del contenido de las transacciones."""
         # Usamos una representación JSON ordenada para consistencia
         try:
-            # Convertimos cada tx a un dict si es necesario/posible para JSON
+            # Convertimos cada tx a un dict para JSON
             tx_repr = [tx if isinstance(tx, dict) else vars(tx) if hasattr(tx, '__dict__') else str(tx)
                        for tx in self.transactions]
             block_string = json.dumps(tx_repr, sort_keys=True).encode()
             return hashlib.sha256(block_string).hexdigest()
         except Exception as e:
              print(f"Warning: No se pudo serializar transacciones a JSON, usando str(): {e}")
-             # Fallback a usar str() si lo anterior falla
              tx_strings = sorted([str(tx) for tx in self.transactions])
              tx_concat = "".join(tx_strings)
              return hashlib.sha256(tx_concat.encode()).hexdigest()
@@ -60,7 +56,6 @@ class Quantum_Block:
         
         header_data = {
             "index": self.index,
-            #"timestamp": self.timestamp,
             "transactions_hash": self._calculate_transaction_hash(),
             "previous_hash": self.previous_hash,
             "mined_by": self.mined_by,
@@ -101,8 +96,7 @@ class Quantum_Block:
         current_graph =  graph if graph is not None else self.generate_graph()
         target = np.ceil(self.difficulty_ratio * current_graph.number_of_edges())
         return target
-        
-    
+          
     @staticmethod
     def _calculate_cut_size(graph: nx.Graph, partition: List[int]) -> int:
         '''Calcula el tamaño del corte dado un grafo y una particion'''
@@ -135,7 +129,7 @@ class Quantum_Block:
                 print(f"Error bloque {self.index}: El grafo generado no tiene el mismo numero de nodos que el bloque")
                 return False, -1
             
-            #Calcuar target en funcion de las aristas del grafo generado y de difficulty_ratio
+            # Calcuar target en funcion de las aristas del grafo generado y de difficulty_ratio
             target_cut = self.calculate_target()
             
             calculated_cut = Quantum_Block._calculate_cut_size(current_graph, self.partition_solution)
@@ -147,7 +141,6 @@ class Quantum_Block:
         except Exception as e:
             print(f"Error inesperado en la validacion de PoW: {e}")
             return False, -1
-
 
     def __str__(self):
         # Imprimir por pantalla

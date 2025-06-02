@@ -1,9 +1,9 @@
 from ecdsa import SigningKey, VerifyingKey, SECP256k1
-import binascii # To convert keys/signatures to hex
+import binascii
 import hashlib
 import json
 from time import time
-from typing import List, Any # For type hinting
+from typing import List, Any
 
 class Wallet:
 
@@ -13,7 +13,6 @@ class Wallet:
 
     def get_address(self)-> str:
         public_key_bytes = self.public_key.to_string() # Obtener bytes de la clave pública
-        # Convertir bytes a cadena hexadecimal y decodificar a string UTF-8
         hex_address = binascii.hexlify(public_key_bytes).decode('utf-8')
         return hex_address
 

@@ -1,7 +1,7 @@
 from quantum_blockchain import Quantum_Blockchain
 from quantum_block import Quantum_Block
 from quantum_transactions import Transaction
-from typing import List, Any, Set # For type hinting
+from typing import List
 import time
 from quantum_node import Quantum_Node
 import copy
@@ -95,25 +95,8 @@ finally:
     else:
         print("INCONSISTENCIA")
 
-    '''for node in nodes:
-        print(f"\nCadena de bloques de {node.node_id}:")
-        for block in node.blockchain.chain:
-            print(f" - Bloque {block.index}: {block.calculate_hash()[:8]}... Tx: {len(block.transactions)}, Prevous: {block.previous_hash[:8]}..., Minado por {block.mined_by}")'''
-
     node_to_print = nodes[0]
     node_to_print.visualize_chain()
 
-
-    # Validar la cadena de bloques
-    all_valid = True
-    for node in nodes:
-        print(f"Validando cadena de {node.node_id}...")
-        is_valid = node.blockchain.is_chain_valid()
-        print(f" - Cadena {node.node_id}: {'Válida' if is_valid else 'No valida'}")
-        if not is_valid:
-            all_valid = False
-        if not all_valid:
-            print("Cadena no valida")
-        
             
 

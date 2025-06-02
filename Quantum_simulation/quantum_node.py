@@ -12,9 +12,7 @@ import hashlib
 import networkx as nx
 from datetime import datetime
 
-
 #graphviz_bin = r"C:\Program Files\Graphviz\bin"
-
 #os.environ["PATH"] += os.pathsep + graphviz_bin
 from graphviz import Digraph
 
@@ -25,9 +23,8 @@ class Quantum_Node(threading.Thread):
         self.blockchain = blockchain_instance
         self.wallet = Wallet()
         self.mempool: Set[Transaction] = set()
-        # self.peers: List['Node'] = []
-        self.peers_queues: Dict[str, queue.Queue] = {} #Almacena colas de enrada de los peers
-        self.incoming_queue = queue.Queue() #Cola de entrada a este nodo
+        self.peers_queues: Dict[str, queue.Queue] = {} #  Almacena colas de enrada de los peers
+        self.incoming_queue = queue.Queue() #C ola de entrada a este nodo
         self.known_tx_hashes: Set[str] = set()
         self.known_block_hashes: Set[str] = set()
         if self.blockchain.chain:
@@ -37,19 +34,16 @@ class Quantum_Node(threading.Thread):
         self.stop_event = stop_event
 
         self.is_minig = False # Flag para evitar minado en pararelo consigo mismo
-        self.mining_thread_active = False #Indica si una tarea de minado está en marcha
-        #self.minig_stop_event = threading.Event() # Detener un nodo
+        self.mining_thread_active = False # Indica si una tarea de minado está en marcha
         self.current_mining_task_stop_event: Optional[threading.Event] = None # Para detener un hilo de minado cuando se recibe un bloque válido
         self.is_validating_block = False # Indica si _handle_block esta ocupado
         self.mining_thread = None #Referencia al hilo minero
 
-        self.data_lock = threading.Lock() #Lock para bloquear accesos concurrentes
+        self.data_lock = threading.Lock() # Lock para bloquear accesos concurrentes
 
         # -- Parametos PoW Max-Cut --
-        self.N = self.blockchain.N #Numero de nodos del grafo
-        self.p = self.blockchain.p #Probabilidad de arista
-
-
+        self.N = self.blockchain.N # Numero de nodos del grafo
+        self.p = self.blockchain.p # Probabilidad de arista
 
         print(f"Nodo {self.node_id} creado. Dirección Wallet: {self.wallet.get_address()[:10]}... Parametros Max-Cut: N={self.N}, p={self.p}")
 
@@ -72,7 +66,6 @@ class Quantum_Node(threading.Thread):
                 return
             self.known_tx_hashes.add(tx_hash)
             if transaction.is_valid() and transaction not in self.mempool:
-                #print(f"Nodo {self.node_id}: Anadida Tx {tx_hash[:8]} a memepool")
                 self.mempool.add(transaction)
                 needs_broadcast = True
             else:
@@ -83,8 +76,8 @@ class Quantum_Node(threading.Thread):
     
     def _handle_block(self, block: Quantum_Block):
         '''Maneja bloques entrantes. Validacion max-cut'''
-        # 1. Comporbar si conecemos el bloque
         
+        # 1. Comporbar si conecemos el bloque
         self.is_validating_block = True
         
         block_hash  = block.hash
@@ -175,11 +168,10 @@ class Quantum_Node(threading.Thread):
 
     def _broadcast(self, msg_type:str, data:any):
         '''Envia mensaje a las colas de todos los peers conocidos'''
-        #print(f"Nodo {self.node_id}: transmitiendo {msg_type}...")
-        message = (msg_type, data) #Empaquetar tipo y datos
+        message = (msg_type, data) # Empaquetar tipo y datos
         for peer_id, peer_queue in self.peers_queues.items():
             try:
-                peer_queue.put(message,block=False) #No bloquear si la cola esta llena
+                peer_queue.put(message,block=False) # No bloquear si la cola esta llena
             except queue.Full:
                 print(f"Nodo {self.node_id}: WARN - Cola del peer {peer_id} llena. Mensaje descartado")
     
@@ -190,22 +182,18 @@ class Quantum_Node(threading.Thread):
                 print(f"Nodo {self.node_id}: Minado ya en curso")
                 return
             mempool_copy = list(self.mempool)
-            #print(f"Nodo {self.node_id}: Copiando mempool ({len(mempool_copy)}) transacciones")
 
             if not mempool_copy:
                 print(f"Nodo {self.node_id}: Nada que minar")
                 return
-
             
             self.is_minig = True
             self.mining_thread_active = True
             # Crear hilo de minado
-            
-            #self.minig_stop_event.clear()
-            
+      
             self.current_mining_task_stop_event = threading.Event() # Evento de parada para esta tarea en concreto
             self.mining_thread = threading.Thread(target=self._mine_worker, args=(mempool_copy, self.current_mining_task_stop_event,self.stop_event), daemon=True)
-            self.mining_thread.start() #Iniciar hilo de minado            
+            self.mining_thread.start() # Iniciar hilo de minado            
         
     
     def _stop_mining(self):
@@ -214,7 +202,6 @@ class Quantum_Node(threading.Thread):
             self.current_mining_task_stop_event.set() # Señalizar hilo de minado que pare
             if self.is_minig:
                 print(f"Nodo {self.node_id}: Deteniendo minado")
-                #self.minig_stop_event.set() # Señalizar nodo que pare
                 if self.mining_thread and self.mining_thread.is_alive():
                     self.mining_thread.join(timeout=0.5)
                     if self.mining_thread.is_alive():
@@ -233,7 +220,7 @@ class Quantum_Node(threading.Thread):
         
         with self.data_lock: # Obtener estado actual
             last_block: Quantum_Block = self.blockchain.last_block
-            if not last_block or not last_block.calculate_final_hash(): #No hay último bloque
+            if not last_block or not last_block.calculate_final_hash(): # No hay último bloque
                 print(f"Nodo {self.node_id}: No hay bloques en la cadena")
                 self.is_minig = False
                 return 
@@ -253,9 +240,8 @@ class Quantum_Node(threading.Thread):
             )
             
             print(f"Nodo {self.node_id}: Iniciando minado bloque {candidate_block.index}. Difficulty ratio: {difficulty_ratio}. Numero de transaciones: {len(candidate_block.transactions)}. Hash bloque anterior: {candidate_block.previous_hash[:8]}")
-            #Generar grafo para puzle
-            
-            
+           
+            #Generar grafo para puzle                   
         try:
             graph_to_solve = candidate_block.generate_graph()
             if graph_to_solve.number_of_nodes() == 0 and self.N > 0:
@@ -351,7 +337,6 @@ class Quantum_Node(threading.Thread):
                 #No hay mensajes en la cola
                 action = random.random()
                 
-                
                 # 2. Posibilidad de crear una transaccion
                 if action < 0.6: 
                     if len(self.peers_queues) > 0 :#Hay mas de un nodo conectado)
@@ -370,8 +355,8 @@ class Quantum_Node(threading.Thread):
                         can_mine =  not self.is_minig and len(self.mempool) > 0
                     if can_mine:
                         self._start_mining()
-                #Pausa para evitar consumo excesivo de CPU
-                time.sleep(random.uniform(0.5, 1.0)) #Pausa aleatoria entre 0.1 y 0.5 segundos
+                # Pausa para evitar consumo excesivo de CPU
+                time.sleep(random.uniform(0.5, 1.0)) # Pausa aleatoria entre 0.1 y 0.5 segundos
         print(f"Nodo {self.node_id}: Hilo detenido")        
     
     def _create_and_broadcast_transaction(self, recipient_address:str, amount:float):
@@ -385,9 +370,8 @@ class Quantum_Node(threading.Thread):
         tx.sign_transaction(self.wallet)
         tx_hash = tx.calculate_hash()
         if tx.is_valid():
-            with self.data_lock: #Acceso a mempool y known_tx_hashes
+            with self.data_lock: # Acceso a mempool y known_tx_hashes
                 if tx not in self.mempool and tx_hash not in self.known_tx_hashes:
-                    #print(f"Nodo {self.node_id}: Transacción válida {tx_hash[:8]}...")
                     self.mempool.add(tx)
                     self.known_tx_hashes.add(tx_hash)
                     needs_broadcast = True
@@ -428,33 +412,28 @@ class Quantum_Node(threading.Thread):
            print(f"  (Mostrando los últimos {max_blocks} bloques de {len(chain_to_visualize)})")
            chain_to_visualize = chain_to_visualize[-max_blocks:]
        start_index = self.blockchain.chain.index(chain_to_visualize[0])
-       # 3. Añadir nodos (bloques) al grafo
+       # 3. Añadir bloques
        for i, block in enumerate(chain_to_visualize):
            actual_index = start_index + i
            miner_info = getattr(block, 'mined_by', 'N/A')
            hash = block.calculate_final_hash()
-           # --- >> CAMBIO CLAVE: Crear Label con Saltos de Línea ('\n') << ---
            label_lines = [
                f"Bloque {block.index}",
-               f"Hash: {hash[:10]}...", # Mostrar un poco más del hash?
+               f"Hash: {hash[:10]}...",
                f"Prev: {block.previous_hash[:10]}...",
                f"Partition: {block.partition_solution}",
                f"Txs: {len(block.transactions)}",
                f"Minado por: {miner_info}"
            ]
-           label = "\n".join(label_lines) # Unir líneas con salto de línea
-           # --- >> FIN DEL CAMBIO << ---
-           
+           label = "\n".join(label_lines)          
            node_id = block.hash
            if block.index == 0:
                print(f"Imprimiendo bloque genesis")
                dot.node(node_id, _attributes={'style': 'filled', 'color':'lightgreen'}) 
                
-              
-           dot.node(node_id, label=label) # El label ahora tiene saltos de línea
-           
-                
-       # 4. Añadir aristas (conexiones) - Irán de Izquierda a Derecha
+           dot.node(node_id, label=label)
+                          
+       # 4. Añadir aristas
        for i in range(1, len(chain_to_visualize)):
            prev_block = chain_to_visualize[i-1]
            current_block = chain_to_visualize[i]
