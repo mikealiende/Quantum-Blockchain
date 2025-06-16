@@ -1,7 +1,7 @@
 from blockchain import Blockchain
 from block import Block
 from transactions import Transaction
-from typing import List, Any, Set # For type hinting
+from typing import List, Any, Set
 import time
 from node import Node
 import random
@@ -24,12 +24,12 @@ for i in range (NUM_NODES):
     nodes.append(node)
 print(f"\n{len(nodes)} nodos creados.")
 
-#2 conectar los nodos
+# 2 conectar los nodos
 print(f"Estableciendo conexiones entre peers...")
 if NUM_NODES > 1:
     for i in range(NUM_NODES):
         for j in range (i+1, NUM_NODES):
-            #Conectar nodo i con j y viceversa
+            # Conectar nodo i con j y viceversa
             nodes[i].add_peer(nodes[j])
             nodes[j].add_peer(nodes[i])
 
@@ -43,7 +43,7 @@ try:
         current_time = time.time()
         action_ocurred = False
 
-        #Simulamos creacion y transmision de transaciones
+        # Simulamos creacion y transmision de transaciones
         if current_time - last_tx_time > random.expovariate(1.0/TRANSACTIONS_INTERVAL_MEAN):
             if len(nodes) >1:
                 sender_node = random.choice(nodes)
@@ -58,7 +58,7 @@ try:
                     action_ocurred = True
                     time.sleep(1)
 
-        #Simular mineria
+        # Simular mineria
         if current_time - last_mine_time > random.expovariate(1.0/ MINING_INTERVAL_MEAN):
             miner_node = random.choice(nodes)
             print(f"\n --- Evento: {miner_node.node_id} intenta minar ---")
@@ -80,7 +80,7 @@ finally:
     print("\n --- Fin de la Simulacion ---")
     print(f"Duracion total: {time.time()-start_time:.2f} segundos")
 
-    #Verificar consistencia de las cadenas
+    # Verificar consistencia de las cadenas
     print("\nEstado final de los nodos:")
     final_hashes = {}
     max_len = 0

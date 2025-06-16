@@ -8,18 +8,16 @@ class Block:
     def __init__(self, index: int, timestamp: float, transactions: List[Transaction], previous_hash: str, nonce: int = 0):
         self.index = index
         self.timestamp = timestamp
-        self.transactions = transactions # List of Transaction objects or dictionaries
+        self.transactions = transactions 
         self.previous_hash = previous_hash
         self.nonce = nonce
-        self.hash = self.calculate_hash() # Calculate hash upon creation
+        self.hash = self.calculate_hash() 
 
     def calculate_hash(self) -> str:
-        # Ensure consistent hashing by sorting dictionary keys if transactions are dicts
-        # Or use a consistent representation of Transaction objects
+        
         block_string = json.dumps({
             "index": self.index,
             "timestamp": self.timestamp,
-            # Make sure transaction representation is deterministic
             "transactions": [str(tx) for tx in self.transactions],
             "previous_hash": self.previous_hash,
             "nonce": self.nonce
@@ -27,5 +25,4 @@ class Block:
         return hashlib.sha256(block_string).hexdigest()
 
     def __str__(self):
-        # For easy printing/representation
         return f"Block #{self.index} [Nonce: {self.nonce}, Hash: {self.hash}, PrevHash: {self.previous_hash}]"
