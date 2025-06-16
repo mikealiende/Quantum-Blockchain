@@ -10,16 +10,12 @@ This repository contains the code developed for the Master’s thesis “Design 
 - Concurrent (multi-threaded) network simulations for classical mining.  
 - QAOA implementations to solve Max-Cut on a quantum simulator.  
 - Integration of QAOA into a prototype quantum Proof-of-Work (“QBitCoin”).  
-- Attack scenarios, performance analysis, and comparisons between classical and quantum PoW.  
 - Scripts and modules organized by stage or functionality:
   - `Simple_Simulation/`
   - `Threads_Simulation/`
   - `Quantum_simulation/`
   - `QAOA/`
   - `Attack_Simulation/`
-  - etc.
-
-Adjust details in sections like Dependencies and Usage to match the exact scripts and libraries used.
 
 ## Repository Structure
 
@@ -46,3 +42,5 @@ Quantum-Blockchain/
 ├── requirements.txt           # Python dependencies
 ├── README.md                  # This file
 └── .gitignore
+
+Miguel Aliende García
